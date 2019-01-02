@@ -1,0 +1,1 @@
+# Lecture notes for STAT-S 432 SP2019
