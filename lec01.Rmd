@@ -176,9 +176,11 @@ only considered cheating
 * Cheating, in my experience, occurs because students don't understand the material, so the result is usually a failing grade even before I impose any penalty and report the incident to the Dean's office. 
 * It is way easier to catch cheating than you probably think, and it does not help you in anyway. 
 * Do your own work, and use the TA and me as resources. 
-* If you are struggling, we are here to help.
+* If you are struggling, we are here to help.  
+* If I suspect cheating, your case will be forwarded to the Dean's office. No questions asked.  
 
-> If I suspect cheating, your case will be forwarded to the Dean's office. No questions asked.
+##Acknowledgement  
+I want to give my thanks to Professor Dan McDonald for providing such a rich set of resources for establishing this course. I hope to add my own flair to the course content as the course progresses.
 
 \newpage
 # Github
@@ -190,9 +192,9 @@ only considered cheating
 
 ## Why version control?
 This is seriously how my dissertation went...  
-__Source__: http://phdcomics.com/comics/archive.php?comicid=1531
 <p align=center>
-![This is why](gfx/phd101212s.png)
+![This is why](gfx/phd101212s.png)  
+__Source__: http://phdcomics.com/comics/archive.php?comicid=1531
 </p>
 
 This process was quite painful and I wish I knew how to use GitHub at the the time.
