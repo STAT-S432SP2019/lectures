@@ -1,8 +1,10 @@
 ---
-title: "STAT-S 432 SP2019: Lecture 1"
-author: "DJM, Revised: NAK"
+title: 'STAT-S 432 SP2019: Lecture 1'
+author: 'DJM, Revised: NAK'
 date: "January 8, 2019"
-output: pdf_document
+output:
+  pdf_document
+urlcolor: blue
 ---
 
 # Syllabus
@@ -153,7 +155,7 @@ during class meetings or office hours in the presence of me or the TA.
 
 * There will be two take home exams. 
 * Both will be completed _entirely_ individually. 
-* The midterm will be made available on __Friday, Febuary 15__ for submission by __Friday, February 22__.
+* The midterm will be made available on __Friday, Febuary 22__ for submission by __Friday, March 1__.
 * The second exam will be available __Friday, April 12__ for submission by __Friday, April 19__. 
 * In both cases, the exam file will be downloaded from your personal repo at 11:59pm on the due date. 
 * Late submissions will not be accepted.

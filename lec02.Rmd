@@ -1,8 +1,10 @@
 ---
-title: "STAT-S 432 SP2019: Lecture 1"
-author: "DJM, Revised: NAK"
+title: 'STAT-S 432 SP2019: Lecture 2'
+author: 'DJM, Revised: NAK'
 date: "January 10, 2019"
-output: pdf_document
+output:
+  pdf_document
+urlcolor: blue
 ---
 
 ## Mark Up, Markdown
