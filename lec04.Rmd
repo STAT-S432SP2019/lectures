@@ -1,0 +1,420 @@
+---
+title: "Chapter 1  (AEPV)"
+author: "DJM, Revised: NAK"
+date: "22 January 2019"
+output: 
+  pdf_document: default
+urlcolor: blue
+---
+
+\renewcommand{\vec}[1]{\underline{#1}}
+
+# The Linear Model
+
+In a purely vector/matrix form, the linear model can be written as:
+\[
+\vec{y} = \vec{X}\vec{\beta} + \vec{\epsilon}
+\]
+
+* $\vec{y} = [y_i]$ is an $n\times 1$ vector of the observed responses.
+
+* $\vec{X} = [x_{ij}]$ is the $n \times p$ 'design matrix'.
+Column $j = 1,\dots, p$ is the observed values of the $j^{\text{th}}$ 'predictor' variable. 
+Each row is the the set of observed values of all $p$ 'predictor' variables. 
+
+* $\vec{\beta} = [\beta_j]$ is the $p\times 1$ vector of the $p$ parameters or coefficients
+associated with each predictor variable.
+
+* $\vec{\epsilon}$ is the $n \times 1$ error vector.
+  
+If we write $\vec{x}_i^\top$ as the $i^\text{th}$ row of $\vec{X}$, we can look at the model in terms of individual $y$ observations.
+
+\[
+y_i = \vec{x}_i^\top \vec{\beta} + \epsilon_i
+\]
+
+1. What are all these things?
+2. What is the mean of $y_i$?
+3. What is the distribution of $\epsilon_i$?
+
+## Simulating The Model
+
+\[
+y_i = \vec{x}_i^\top \vec{\beta} + \epsilon_i
+\]
+
+We can break down the model in to two components:  
+
+* a deterministic component
+* a random component  
+
+This gives us the form for how we could picture the data produced by the system we try to model.  
+
+
+```{r sampling_simple, fig.height=3}
+n=50
+
+# Need x values
+x <- rnorm(n, 33, 5) #n, mu, sigma
+
+#need a value for coefficients.
+beta <- c(300, -5) # don't forget the y-intercept.
+
+# Create the design matrix
+X <- cbind(1, x) # Pastes 'columns' side-by-side together. Why the '1'?
+
+# Deterministic portion
+mu_y <- X%*%beta
+
+# Going to create side-by-side plots
+opar <- par() # save current R settings
+par(mfrow = c(1,2), mar = c(3,3,3,1)) # Change plot() grid, and margins
+
+plot(x, mu_y, main = "Deterministic Portion")
+
+# Introducing error
+err <- rnorm(length(x), 0, 20) 
+
+y <- mu_y + err
+
+plot(x, y, main = "Introducing Randomness", col = 3)
+abline(coef = beta)
+
+
+dev.off() # This turns off the graphic device and resets par()
+
+```
+
+What needs to be changed here if we want to simulate a multiple regression situation?
+
+Will this work?
+
+```{r sampling_mult, eval = F}
+
+# Need SOMETHING for X
+X <- cbind(1, rnorm(n, 37, 5), rnorm(n, 82, 20), rnorm(n, 2.52, .5))
+
+# Parameter vector
+beta <- c(-10, 1.5, -3, 5.2)
+
+```
+
+# How do we estimate beta?
+
+1. Ordinary least squares (OLS).
+2. Maximum likelihood.
+3. Do something more creative.
+
+
+## Method 1. OLS
+
+Suppose I want to find an estimator $\widehat\beta$ which makes small errors on my data.
+
+I measure errors with the difference between predictions $X\widehat\beta$ and the responses $Y$.
+
+I don't care if the differences are positive or negative, so I try to measure the total error with
+\[
+\sum_{i=1}^n \left\lvert y_i - \vec{x}_i^\top \widehat\beta \right\rvert.
+\]
+
+This is fine, but hard to minimize (what is the derivative of $|\cdot|$?)
+
+So I use 
+\[
+\sum_{i=1}^n ( y_i - \vec{x}_i^\top \widehat\beta )^2.
+\]
+
+
+### OLS solution
+
+We write this as
+\[
+\widehat\beta = \arg\min_\beta \sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2.
+\]
+
+"Find the $\beta$ which minimizes the sum of squared errors."
+
+Note that this is the same as 
+\[
+\widehat\beta = \arg\min_\beta \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2.
+\]
+
+"Find the beta which minimizes the mean squared error."
+
+### Optimize = Calculus
+
+
+We differentiate and set to zero
+\[
+\begin{aligned}
+& \frac{\partial}{\partial \beta} \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2\\
+&= \frac{2}{n}\sum_{i=1}^n \vec{x}_i (y_i - \vec{x}_i^\top\beta)\\
+&= \frac{2}{n}\sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \beta + \vec{x}_i y_i\\
+0 &\equiv \sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \beta + \vec{x}_i y_i\\
+&\Rightarrow \sum_{i=1}^n \vec{x}_i \vec{x}_i^\top \beta = \sum_{i=1}^n \vec{x}_i y_i\\
+&\Rightarrow \beta = \left(\sum_{i=1}^n \vec{x}_i \vec{x}_i^\top\right)^{-1}\sum_{i=1}^n \vec{x}_i y_i
+\end{aligned}
+\]
+
+### Matrix OLS Solution
+
+Very often, it is said that the OLS solution is:
+\[
+\hat\beta = (X^\top X)^{-1} X^\top Y.
+\]
+
+A more general solution is the following:
+\[
+	\vec{\widehat{\beta}} = \vec{X}^-\vec{y} + \left( \vec{I} - \vec{X}^-\vec{X} \right)\vec{h} 
+\]
+
+* Here $X^-$ is the Moore-Penrose Generalized Inverse.
+* It is used when all columns of $X$ are not linearly independent.
+* This usually arises in 'Effects Model' representations of Analysis of Variance models.
+
+## Method 2: Maximum Likelihood Estimation, MLE
+
+Method 1 didn't use anything about the distribution of $\epsilon$.
+
+But if we know that $\epsilon$ has a normal distribution, we can write down the joint distribution
+of $Y=(y_1,\ldots,y_n)$:
+
+\[
+\begin{aligned}
+f_Y(y ; \beta) &= \prod_{i=1}^n f_{y_i ; \beta}(y_i)\\
+  &= \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{1}{2\sigma^2} (y_i-\vec{x}_i^\top \beta)^2\right)\\
+  &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2\right)
+\end{aligned}
+\]
+
+
+We initially learn to think of $f_Y$ as a function of $y$ with $\beta$ fixed:
+
+1. If we integrate over $y$ from $-\infty$ to $\infty$, it's $1$.
+2. If we want the probability of $(a,b)$, we integrate from $a$ to $b$.
+3. etc.
+
+### Likelihood Functions
+
+Instead, think of it as a function of $\beta$.
+
+We call this "the likelihood" of beta: $\mathcal{L}(\beta)$.
+
+Given some data, we can evaluate the likelihood for any value of $\beta$ (assuming $\sigma$ is known).
+
+It won't integrate to $1$ over $\beta$.
+
+But it is "convex", meaning we can maximize it (the second derivative wrt $\beta$ is everywhere negative).
+
+### Another Round of Optimization: Log Likelihood Functions
+
+The derivative of $L(\beta)$ tractable but a pain to work with. (Why is it so bad?)
+
+* If we're trying to maximize over $\beta$, we can take the $\log$ of $L(\beta)$, and maximize over the log function instead.
+* We will get the same solution for $\beta$. Why?
+* It will be easier too. Again... Why?
+
+
+\[
+\begin{aligned}
+\mathcal{L}(\beta) &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2\right)\\
+\ell(\beta) &=-\frac{n}{2}\log (2\pi\sigma^2) -\frac{1}{2\sigma^2} \sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2
+\end{aligned}
+\]
+
+But we can ignore constants (assume sigma is constant for simplicity), so this gives
+
+\[
+\widehat\beta = \arg\max_\beta -\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2
+\]
+
+The same as before!
+
+## Other Methods
+
+### Weighted Least Squares (Make OLS More Complex)
+
+* OLS treats each observation equally. 
+* Some observations may be more reliable than others for different reasons.
+* We can weight each $i^{th}$ observation by a 'weight', $w_i$.
+
+\[
+\widehat{\beta} = \arg_\beta \min \sum_{i=1}^n w_i \left( y_i - \vec{x}_i^\top \vec{\beta} \right) ^2
+\]
+
+### Options Beyond "Least Squares"
+
+In general, we want to minimize some form of the Sum of Squared Error (SSE).
+
+SSE is just one of what are referred to as __Loss Functions__.
+
+Loss functions are functions that measure the cost of a predicted value $\widehat{y}_i$ when it is compared to the observed value $y_i$.
+
+$L(y_i, \widehat{y}_i) =$ 
+
+
+* $(y_i - \widehat{y}_i )^2$
+* $|y_i - \widehat{y}_i |$
+* $I(y_i \neq \widehat{y}_i )$
+* And many more depending on the problem at hand.
+
+What ever the loss function is, we seek to minimize it across the sample.
+
+
+# Mean Square Error (MSE): The $L_2$ Loss
+
+Forget about the linear model. We can get more general.
+
+Suppose we think that there is __some__ function which relates $y$ and $x$.
+
+Let's call this function $g$ for the moment: $Y = g(X) + \epsilon$
+
+How do we estimate $g$?
+
+What is $g$?
+
+## Minimizing MSE
+
+Let's try to minimize the __expected__ sum of squared errors (MSE)
+
+\[
+\begin{aligned}
+\mathbb{E}\left[(Y-g(X))^2\right] &= \mathbb{E}\left[\mathbb{E}\left[(Y-g(X))^2 \ \vert\  X\right]\right]\\
+  &= \mathbb{E}\left[\mathrm{Var}\left[Y\ \vert\  X\right] + \mathbb{E}\left[(Y-g(X)) \ \vert\  X\right]^2\right]\\
+  &= \mathbb{E}\left[\mathrm{Var}\left[Y\ \vert\  X\right]\right] + \mathbb{E}\left[\mathbb{E}\left[(Y-g(X)) \ \vert\  X\right]^2\right]\\
+\end{aligned}
+\]
+
+The first part doesn't depend on $g$, it's constant, and we toss it.
+
+To minimize the rest, take derivatives and set to 0.
+
+\[
+\begin{aligned}
+0 &=\frac{\partial}{\partial g} \mathbb{E}\left[\mathbb{E}\left[(Y-g(X))^2 \ \vert\  X\right]\right]\\
+  &=-\mathbb{E}\left[\mathbb{E}\left[ 2(Y - g(X) \ \vert\  X\right]\right]\\
+&\Rightarrow 2\mathbb{E}\left[g(X) \ \vert\  X\right] = 2\mathbb{E}\left[Y \ \vert\  X\right]\\
+&\Rightarrow g(X) = \mathbb{E}\left[Y \ \vert\  X\right]
+\end{aligned}
+\]
+
+### The regression function
+
+We call this solution:
+
+\[
+\mu(X) = \mathbb{E}\left[Y \ \vert\  X\right]
+\]
+
+the __regression function__.
+
+If we __assume__ that $\mu(x) = \mathbb{E}\left[Y \ \vert\  X=x\right] = x^\top \beta$, then we get back exactly OLS.
+
+But why should we assume $\mu(x) = x^\top \beta$?
+
+### Estimating The Regression Function
+
+
+In mathematics: $\mu(x) = \mathbb{E}\left[Y \ \vert\  X=x\right]$.
+
+In words: Regression is really about estimating the mean.  
+
+1. If $Y\sim \textrm{N}(\mu, 1)$, our best guess for a __new__ $Y$ is $\mu$.  
+2. For regression, we let the mean $(\mu)$ __depend__ on $X$.  
+3. Think of $Y\sim \textrm{N}(\mu(X), 1)$, then conditional on $X=x$, our best guess for a __new__ $Y$ is $\mu(x)$ [whatever this function $\mu$ is]
+
+
+## Causality
+
+For any two variables $Y$ and $X$, we can __always__ write
+\[
+Y \ \vert\  X = \mu(X) + \eta(X)
+\]
+such that $\mathbb{E}\left[\eta(X)\right]=0$.
+
+* Suppose, $\mu(X)=\mu_0$ (constant in $X$), are $Y$ and $X$ independent?
+* Suppose $Y$ and $X$ are independent, is $\mu(X)=\mu_0$?
+
+
+# Previews of future chapters
+
+## Linear smoothers
+
+> What is a linear smoother?
+
+1. Suppose I observe $y_1,\ldots,y_n$.
+2. A linear smoother is any __prediction function__ that's linear in $\vec{y}$.  
+    * Linear functions of $\vec{y}$ are simply premultiplications by a matrix, i.e. $\hat{\vec{y}} = \vec{W}\vec{y}$ for any matrix $\vec{W}$.
+3. Examples:
+    * $\overline{y} = \frac{1}{n}\sum y_i = \frac{1}{n}\begin{bmatrix} 1 & 1 & \cdots & 1 \end{bmatrix} \vec{y}$
+    * OLS Regression: $\widehat{y} = \vec{X}\widehat{\vec{\beta}} = X(\vec{X}\prime\vec{X})^{-1}\vec{X}\prime\vec{y}$
+    * You will see many other smoothers in this class
+
+### k-nearest neighbors (kNN)
+
+(We will see __smoothers__ in more detail in Ch. 4)
+
+1. For kNN, consider a particular pair $(Y_i, X_i)$
+2. Find the $k$ covariates $X_j$ which are closest to $X_i$
+3. Predict $Y_i$ with the average of those $X_j$'s
+4. This turns out to be a linear smoother
+  * How would you specify $\vec{W}$?
+
+## Kernels
+
+(Again, more info in Ch. 4)
+
+Kernel Regression is a linear smoothing technique that is similar in nature to kNN.
+
+First, the definition of a "kernel" function, $K(u)$.
+
+1. $K(u) \geq 0$
+2. $\int u K(u)\, du = 0$
+3. $0 < \int u^2 K(u)\, du < \infty$
+
+Usually, it's a density function with a finite variance and mean of 0.
+
+To predict at a point $x$ we look at an average the of the $y_i$ centered around $x$, like kNN.
+
+However, we do not restrict ourselves to estimating the mean with a limited number of observations.
+
+We use a weighted average where the weight of a $y_i$ is determined by its horizontal distance from the point $x$ via the kernel $K$.
+
+\[
+\frac{1}{\sum_{i=1}^n K(\frac{x - x_i}{h})}\sum_{i=1}^n K(\frac{x - x_i}{h})y_i
+\]
+
+```{r echo = FALSE, results='hide', message=FALSE, warning=FALSE}
+library(np)
+```
+
+```{r kern_reg_demo, echo = FALSE}
+
+### Creating kernel regression plot.
+par(mar = c(4,4,1,1))
+x <- sort((runif(200) - .5)*6)
+y <- sin(x) + rnorm(200, 0, .1)
+plot(x,y)
+
+dat <- data.frame(x,y)
+
+log <- capture.output(bw <- npregbw(y ~ x, dat))
+reg <- npreg(bw, dat)
+lines(x, predict(reg), col = "blue")
+
+points(x[150], y[150], pch = 16, col = "red")
+abline(h = y[150], col = "red")
+abline(v = x[150], col = "red")
+
+m <- x[150]
+s <- bw$bw
+
+x0 <- seq(m - 3.5*s, m+3.5*s,0.001)
+y0 <- dnorm(x0,m,s)/6
+
+lines(x0,y0, col = "red")
+lines(x0,rep(0,length(x0)), col = "red")
+
+
+```
+
