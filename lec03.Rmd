@@ -299,6 +299,10 @@ predictive models.
 
 ```{r}
 mob <- read.csv("http://www.stat.cmu.edu/~cshalizi/uADA/15/hw/01/mobility.csv")
+attach(mob)
+mob <- data.frame(Mobility, Population, Seg_racial, Commute, Income, Gini)
+
+pairs(mob)
 ```
 
 ## Estimation Functions and Formulas
@@ -526,8 +530,8 @@ of the model, and putting in new values for the covariates or independent
 variables.  
     + In terms of the linear model, we change $x$, not $\widehat{\beta}$.
 
-* Notice that I used `mob.lm2` here, rather than the mathematically-equivalent `mob.lm1`.
-    -`mob.lm1 <- lm(mob$Mobility ~ mob$Population + mob$Seg_racial + mob$Commute + mob$Income + mob$Gini)`
+* Notice that I used `mob.lm2` here, rather than the mathematically-equivalent `mob.lm1`.  
+    -`mob.lm1 <- lm(mob$Mobility ~ mob$Population + mob$Seg_racial + mob$Commute + mob$Income + mob$Gini)`  
     -`mob.lm2 <- lm(Mobility ~ Population + Seg_racial + Commute + Income + Gini, data=mob)`
 
 * Because I specified `mob.lm2` with a formula that just referred to column names,
@@ -614,10 +618,14 @@ options are only discussed on the help pages for the class-specific functions
 * For instance, suppose we want to estimate a kernel regression
 (as in chapter 4) to the same data, using the same variables.  
 
-```{r test, cache=TRUE, echo=TRUE, results='hide'}
+```{r test, cache=TRUE, results="hide",}
 #
-library(np)
+library(np) # Nonparametric methods library
+
+# This must be computed first. It is a computationally intese function.
 mob.npbw <- npregbw(formula=formula(mob.lm2), data=mob, tol=1e-2, ftol=1e-2)
+
+# Noteice that no formula is needed here.
 mob.np <- npreg(mob.npbw, data=mob)
 ```
 
@@ -643,14 +651,13 @@ mob.np <- npreg(mob.npbw, data=mob)
 
 * We can look at a summary:
 
-
-  ```{r, cahce=TRUE, autodep=TRUE}
+```{r, autodep=TRUE}
   summary(mob.np)
-  ```
+```  
 
 * We can look at fitted values and residuals:
 
-```{r, autodep=TRUE, cache=TRUE}
+```{r, autodep=TRUE}
 head(fitted(mob.np))
 tail(residuals(mob.np))
 ```
@@ -658,14 +665,14 @@ tail(residuals(mob.np))
 
 *We can make predictions:
 
-```{r,autodep=TRUE,cache=TRUE}
+```{r,autodep=TRUE}
 predict(mob.np, newdata=data.frame(Population=1.5e6, Seg_racial=0, 
         Commute=0.5, Income=3e4, Gini=median(mob$Gini)))
 ```
 
 * and we can plot things
 
-```{r, fig.align='center',fig.height=12,fig.width=10,cache=TRUE,autodep=TRUE}
+```{r, fig.align='center',fig.height=12,fig.width=10,autodep=TRUE}
 par(mar=c(5,5,1,1),cex.lab=3,cex.axis=2,lwd=2,col=4,bty='n')
 plot(mob.np,plot.errors.method='bootstrap')
 ```
