@@ -348,7 +348,7 @@ such that $\mathbb{E}\left[\eta(X)\right]=0$.
     * Linear functions of $\vec{y}$ are simply premultiplications by a matrix, i.e. $\hat{\vec{y}} = \vec{W}\vec{y}$ for any matrix $\vec{W}$.
 3. Examples:
     * $\overline{y} = \frac{1}{n}\sum y_i = \frac{1}{n}\begin{bmatrix} 1 & 1 & \cdots & 1 \end{bmatrix} \vec{y}$
-    * OLS Regression: $\widehat{y} = \vec{X}\widehat{\vec{\beta}} = X(\vec{X}\prime\vec{X})^{-1}\vec{X}\prime\vec{y}$
+    * OLS Regression: $\widehat{y} = \vec{X}\widehat{\vec{\beta}} = X(\vec{X}\top\vec{X})^{-1}\vec{X}\top\vec{y}$
     * You will see many other smoothers in this class
 
 ### k-nearest neighbors (kNN)
