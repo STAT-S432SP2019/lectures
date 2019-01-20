@@ -33,7 +33,7 @@ If we write $\vec{x}_i^\top$ as the $i^\text{th}$ row of $\vec{X}$, we can look 
 y_i = \vec{x}_i^\top \vec{\beta} + \epsilon_i
 \]
 
-1. What are all these things?
+1. What are all of these things?
 2. What is the mean of $y_i$?
 3. What is the distribution of $\epsilon_i$?
 
@@ -99,7 +99,7 @@ beta <- c(-10, 1.5, -3, 5.2)
 
 ```
 
-# How do we estimate beta?
+# How do we estimate $\vec{\beta}$?
 
 1. Ordinary least squares (OLS).
 2. Maximum likelihood.
@@ -108,20 +108,20 @@ beta <- c(-10, 1.5, -3, 5.2)
 
 ## Method 1. OLS
 
-Suppose I want to find an estimator $\widehat\beta$ which makes small errors on my data.
+Suppose I want to find an estimator $\vec{\widehat\beta}$ which makes small errors on my data.
 
-I measure errors with the difference between predictions $X\widehat\beta$ and the responses $Y$.
+I measure errors with the difference between predictions $\vec{X}\vec{\widehat\beta}$ and the responses $\vec{y}$.
 
 I don't care if the differences are positive or negative, so I try to measure the total error with
 \[
-\sum_{i=1}^n \left\lvert y_i - \vec{x}_i^\top \widehat\beta \right\rvert.
+\sum_{i=1}^n \left\lvert y_i - \vec{x}_i^\top \vec{\widehat{\beta}} \right\rvert.
 \]
 
 This is fine, but hard to minimize (what is the derivative of $|\cdot|$?)
 
 So I use 
 \[
-\sum_{i=1}^n ( y_i - \vec{x}_i^\top \widehat\beta )^2.
+\sum_{i=1}^n ( y_i - \vec{x}_i^\top\vec{ \widehat\beta} )^2.
 \]
 
 
@@ -129,14 +129,14 @@ So I use
 
 We write this as
 \[
-\widehat\beta = \arg\min_\beta \sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2.
+\vec{\widehat\beta} = \arg\min_{\vec{\beta}} \sum_{i=1}^n ( y_i - \vec{x}_i^\top \vec{\beta} )^2.
 \]
 
 "Find the $\beta$ which minimizes the sum of squared errors."
 
 Note that this is the same as 
 \[
-\widehat\beta = \arg\min_\beta \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2.
+\vec{\widehat\beta} = \arg\min_{\vec{\beta}} \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \vec{\beta} )^2.
 \]
 
 "Find the beta which minimizes the mean squared error."
@@ -147,12 +147,12 @@ Note that this is the same as
 We differentiate and set to zero
 \[
 \begin{aligned}
-& \frac{\partial}{\partial \beta} \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \beta )^2\\
-&= \frac{2}{n}\sum_{i=1}^n \vec{x}_i (y_i - \vec{x}_i^\top\beta)\\
-&= \frac{2}{n}\sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \beta + \vec{x}_i y_i\\
-0 &\equiv \sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \beta + \vec{x}_i y_i\\
-&\Rightarrow \sum_{i=1}^n \vec{x}_i \vec{x}_i^\top \beta = \sum_{i=1}^n \vec{x}_i y_i\\
-&\Rightarrow \beta = \left(\sum_{i=1}^n \vec{x}_i \vec{x}_i^\top\right)^{-1}\sum_{i=1}^n \vec{x}_i y_i
+& \frac{\partial}{\partial \vec{\beta}} \frac{1}{n}\sum_{i=1}^n ( y_i - \vec{x}_i^\top \vec{\beta} )^2\\
+&= \frac{2}{n}\sum_{i=1}^n \vec{x}_i (y_i - \vec{x}_i^\top\vec{\beta} )\\
+&= \frac{2}{n}\sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \vec{\beta}  + \vec{x}_i y_i\\
+0 &\equiv \sum_{i=1}^n - \vec{x}_i \vec{x}_i^\top \vec{\beta} + \vec{x}_i y_i\\
+&\Rightarrow \sum_{i=1}^n \vec{x}_i \vec{x}_i^\top\vec{\beta} = \sum_{i=1}^n \vec{x}_i y_i\\
+&\Rightarrow \vec{\beta} = \left(\sum_{i=1}^n \vec{x}_i \vec{x}_i^\top\right)^{-1}\sum_{i=1}^n \vec{x}_i y_i
 \end{aligned}
 \]
 
@@ -160,7 +160,7 @@ We differentiate and set to zero
 
 Very often, it is said that the OLS solution is:
 \[
-\hat\beta = (X^\top X)^{-1} X^\top Y.
+\vec{\widehat\beta} = (X^\top X)^{-1} X^\top Y.
 \]
 
 A more general solution is the following:
@@ -181,14 +181,15 @@ of $Y=(y_1,\ldots,y_n)$:
 
 \[
 \begin{aligned}
-f_Y(y ; \beta) &= \prod_{i=1}^n f_{y_i ; \beta}(y_i)\\
-  &= \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{1}{2\sigma^2} (y_i-\vec{x}_i^\top \beta)^2\right)\\
-  &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2\right)
+f_Y(y ; \vec{\beta}) &= \prod_{i=1}^n f_{y_i ; \vec{\beta}}(y_i)\\
+  &= \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{1}{2\sigma^2} (y_i-\vec{x}_i^\top \vec{\beta})^2\right)\\
+  &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n 
+  (y_i-\vec{x}_i^\top \vec{\beta})^2\right)
 \end{aligned}
 \]
 
 
-We initially learn to think of $f_Y$ as a function of $y$ with $\beta$ fixed:
+We initially learn to think of $f_Y$ as a function of $y$ with $\vec{\beta}$ fixed:
 
 1. If we integrate over $y$ from $-\infty$ to $\infty$, it's $1$.
 2. If we want the probability of $(a,b)$, we integrate from $a$ to $b$.
@@ -196,36 +197,36 @@ We initially learn to think of $f_Y$ as a function of $y$ with $\beta$ fixed:
 
 ### Likelihood Functions
 
-Instead, think of it as a function of $\beta$.
+Instead, think of it as a function of $\vec{\beta}$.
 
-We call this "the likelihood" of beta: $\mathcal{L}(\beta)$.
+We call this "the likelihood" of beta: $\mathcal{L}(\vec{\beta})$.
 
-Given some data, we can evaluate the likelihood for any value of $\beta$ (assuming $\sigma$ is known).
+Given some data, we can evaluate the likelihood for any value of $\vec{\beta}$ (assuming $\sigma$ is known).
 
-It won't integrate to $1$ over $\beta$.
+It won't integrate to $1$ over $\vec{\beta}$.
 
-But it is "convex", meaning we can maximize it (the second derivative wrt $\beta$ is everywhere negative).
+But it is "convex", meaning we can maximize it (the second derivative wrt $\vec{\beta}$ is everywhere negative).
 
 ### Another Round of Optimization: Log Likelihood Functions
 
-The derivative of $L(\beta)$ tractable but a pain to work with. (Why is it so bad?)
+The derivative of $L(\vec{\beta})$ tractable but a pain to work with. (Why is it so bad?)
 
-* If we're trying to maximize over $\beta$, we can take the $\log$ of $L(\beta)$, and maximize over the log function instead.
-* We will get the same solution for $\beta$. Why?
+* If we're trying to maximize over $\vec{\beta}$, we can take the $\log$ of $L(\vec{\beta})$, and maximize over the log function instead.
+* We will get the same solution for $\vec{\beta}$. Why?
 * It will be easier too. Again... Why?
 
 
 \[
 \begin{aligned}
-\mathcal{L}(\beta) &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2\right)\\
-\ell(\beta) &=-\frac{n}{2}\log (2\pi\sigma^2) -\frac{1}{2\sigma^2} \sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2
+\mathcal{L}(\vec{\beta}) &= \left( \frac{1}{2\pi\sigma^2}\right)^{n/2} \exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vec{x}_i^\top \vec{\beta})^2\right)\\
+\ell(\vec{\beta}) &=-\frac{n}{2}\log (2\pi\sigma^2) -\frac{1}{2\sigma^2} \sum_{i=1}^n (y_i-\vec{x}_i^\top \vec{\beta})^2
 \end{aligned}
 \]
 
 But we can ignore constants (assume sigma is constant for simplicity), so this gives
 
 \[
-\widehat\beta = \arg\max_\beta -\sum_{i=1}^n (y_i-\vec{x}_i^\top \beta)^2
+\vec{\widehat\beta} = \arg\max_{\vec{\beta}} -\sum_{i=1}^n (y_i-\vec{x}_i^\top \vec{\beta})^2
 \]
 
 The same as before!
@@ -239,7 +240,7 @@ The same as before!
 * We can weight each $i^{th}$ observation by a 'weight', $w_i$.
 
 \[
-\widehat{\beta} = \arg_\beta \min \sum_{i=1}^n w_i \left( y_i - \vec{x}_i^\top \vec{\beta} \right) ^2
+\widehat{\vec{\beta}} = \arg_{\vec{\beta}} \min \sum_{i=1}^n w_i \left( y_i - \vec{x}_i^\top \vec{\beta} \right) ^2
 \]
 
 ### Options Beyond "Least Squares"
@@ -308,9 +309,9 @@ We call this solution:
 
 the __regression function__.
 
-If we __assume__ that $\mu(x) = \mathbb{E}\left[Y \ \vert\  X=x\right] = x^\top \beta$, then we get back exactly OLS.
+If we __assume__ that $\mu(x) = \mathbb{E}\left[Y \ \vert\  X=x\right] = x^\top \vec{\beta}$, then we get back exactly OLS.
 
-But why should we assume $\mu(x) = x^\top \beta$?
+But why should we assume $\mu(x) = x^\top \vec{\beta}$?
 
 ### Estimating The Regression Function
 
