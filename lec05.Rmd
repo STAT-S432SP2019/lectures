@@ -1,0 +1,269 @@
+---
+title: "Chapter 2"
+author: "DJM, Revised: NAK"
+date: "29 January 2018"
+output:
+  pdf_document: default
+#  slidy_presentation: default
+---
+
+\newcommand{\Expect}[1]{\mathbb{E}\left[ #1 \right]}
+\newcommand{\Var}[1]{\mathbb{V}\left[ #1 \right]}
+\newcommand{\Cov}[2]{\mathrm{Cov}\left[#1,\ #2\right]}
+\newcommand{\given}{\ \vert\ }
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\vX}{\vec{X}}
+\newcommand{\bhat}{\vec{\widehat{\beta}}}
+
+# Chapter Overview
+
+
+> Problems with regression, and in particular, linear regression
+
+
+1. Linearity is almost always an approximation.
+    * What do we mean by linearity though?
+    * What does this mean for the residuals
+2. Collinearity of predictor variables __can__ cause difficulties for numerics and interpretation.
+    * "Collinearirty" versus "Correlated"
+3. The the "fit" of our model depends strongly on the marginal distribution of $\vec{X}$.
+    * Manipulating $R^2$
+    * Transformations on $\vec{X}$
+4. Hidden variables can affect our estimated model more than you may think.
+5. Probabilitic assumptions and what conclusions we make from them.
+
+
+# Regression in general: The Linearity Assumption
+
+* If I want to predict $Y$ from $X$, it is almost always the case that
+
+\[
+\mu(\vec{x}) = \Expect{Y\given \vX = \vec{x}} \neq \vec{x}^{\top}\vec{\beta}
+\]  
+
+* Therefore, there is some sort of __bias__ involved.
+    - Global bias?
+    - Local bias?  
+
+* We can include as many predictors as we like, but this doesn't change the fact that the world is __non-linear__.
+
+## What is bias? Statistically...
+
+* If $\theta$ is a parameter we want to estimate, and $\widehat{\theta}$ is a suggested estimate: \[ \text{Bias}\left[ \widehat{\theta} \right] = \Expect{\widehat{\theta}} - \theta  \]  
+
+* Bias is certainly not good, but is not necessarily all that bad either.
+
+* A very simple example: let $Z_1,\ldots,Z_n \sim N(\mu, 1)$. $\mu$ is unknown $\to$ use the data to estimate.
+  - 3 potential estimators: 
+      1. $\widehat{\mu}_1 = 12$, 
+      2. $\widehat{\mu}_2=Z_6$, 
+      3. $\widehat{\mu}_3=\overline{Z}$.
+  - Calculate the bias and variance of each estimator.
+
+## Asymptotic efficiency
+
+> This and MLE are covered in 420.
+
+There are many properties one can ask of estimators $\widehat{\theta}$ of parameters $\theta$
+
+1. Unbiased: $\Expect{\widehat{\theta}}-\theta=0$
+2. Consistent: $\widehat{\theta}\xrightarrow{n\rightarrow\infty} \theta$
+3. Efficient: $\Var{\widehat{\theta}}$ is the smallest of all unbiased estimators
+3. Asymptotically efficient: Maybe not efficient for every $n$, but in the limit, the variance is the smallest of all unbiased estimators.
+4. Minimax: over all possible estimators in some class, this one has the smallest MSE for the worst problem.
+5. $\ldots$
+
+## Approximating $\mu(\vec{x})$
+
+* The Taylor series expansion of the mean function $\mu(\vec{x})$ at some point $u$
+
+\[
+\mu(\vec{x}) = \mu(\vec{u}) + (\vec{x}-\vec{u}) \cdot \nabla\mu(\vec{u}) + O(\lVert \vec{x}-\vec{u}\rVert^2)
+\]
+
+* The notation $f(x) = O(g(x))$ means that for any $x$ there exists a constant $C$ such that $f(x)/g(x) < C$.
+
+* More intuitively, this notation means that the remainder (all the higher order terms) are about the size of the distance between $x$ and $u$ or smaller.
+
+* So as long as we are looking at points $\vec{u}$ near by $\vec{x}$, a linear approximation to $\mu(\vec{x})=\Expect{Y\given \vX=\vec{x}}$ is reasonably accurate.
+
+\newpage
+
+## Example: Approximating $\sqrt{x}$
+
+Each of these plots is of the $\sqrt{x}$ which is not linear, but the domain displayed is shifted.
+
+```{r echo = F}
+x <- seq(0,10,.01)
+y <- sqrt(x)
+
+
+par(mfrow = c(2,2), mar = c(2,2,2,1))
+
+plot(x,y, type = "l"); plot(x[1:50],y[1:50], type = "l")
+plot(x[10 + 1:50],y[10 + 1:50], type = "l"); plot(x[500 + 1:250],y[500 + 1:250], type = "l")
+
+```
+\newpage  
+
+
+## Global Prediction Error vs. Local
+
+* In theory, we have (if we know things about the state of nature)
+
+\[
+\vec{\beta}^* = \arg\min_{\vec{\beta}} \Expect{\lVert Y-\vec{X}\vec{\beta}\rVert^2} = \Cov{\vec{X}}{\vec{X}}^{-1}\Cov{\vec{X}}{Y}
+\]
+
+* Define $\vec{V}^{-1}=\Cov{{\vec{X}}}{{\vec{X}}}^{-1}$.
+
+* Using this optimal value $\beta^*$, what is $\Cov{Y-\vec{X}\vec{\beta}^*}{X}$?
+
+\[
+\begin{aligned}
+\Cov{Y-\vec{X}\vec{\beta}^*}{\vec{X}} &= \Cov{Y}{\vec{X}}-\Cov{\vec{X}\vec{\beta}^*}{\vec{X}} & \textrm{(Cov is linear)}\\
+&=\Cov{Y}{\vec{X}} - \Cov{\vec{X} (\vec{V}^{-1}\Cov{\vec{X}}{Y})}{\vec{X}} & \textrm{(substitute the def. of $\beta^*$)}\\
+&=\Cov{Y}{\vec{X}} - \Cov{\vec{X}}{\vec{X}}\vec{V}^{-1}\Cov{Y}{\vec{X}} &\\
+&=\Cov{Y}{\vec{X}} - \Cov{Y}{\vec{X}}=0.
+\end{aligned}
+\]
+
+* This means the average of $Y - \vX\vec{\beta} = 0$ across the entire line.
+* What about locally, i.e., $E\left[ Y-\vX\vec{\beta} | \vX = \vec{x}\right]$
+
+
+# Collinearity
+
+We very often take it for granted that all predictor variables are linearly independent. What is linear independence of vectors?
+
+Say you have model that has included weight in pounds $(X_1)$ and weight and kilograms $(X_2 = X_1/2.2)$.
+
+\[
+\begin{aligned}
+\widehat{\mu}(\vX) &= \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p &\\
+&= 0 X_1 + (2.2 \beta_1 + \beta_2) X_2 + \dots + \beta_p X_p &\\
+&= (\beta_1 + \beta_2/2.2) X_1 + 0 X_2 + \dots + \beta_p X_p &\\
+&= -2200 X_1 + (1000 + \beta_1 + \beta_2) X_2 + \dots + \beta_p X_p &\\
+\end{aligned}
+\]
+  
+## When two variables are collinear, a few things happen.
+
+  1. We cannot __numerically__ calculate $(\mathbf{X}^\top\mathbf{X})^{-1}$. It is rank deficient.
+  2. We cannot __intellectually__ separate the contributions of the two variables.
+  3. We can (and should) drop one of them. This will not change the bias of our estimator, but it will alter our interpretations.
+  4. Collinearity appears most frequently with many categorical variables.
+  5. In these cases, software __automatically__ drops one of the levels resulting in the baseline case being in the intercept. Alternately, we could drop the intercept!
+  6. High-dimensional problems (where we have more predictors than observations) also lead to rank deficiencies.
+  6. There are methods (regularizing) which attempt to handle this issue (both the numerics and the interpretability). We may have time to cover them slightly.
+  
+
+
+
+
+# Problems with R-squared
+
+\[
+R^2 = 1-\frac{SSE}{\sum_{i=1}^n (Y_i-\overline{Y})^2} = 1-\frac{MSE}{\frac{1}{n}\sum_{i=1}^n (Y_i-\overline{Y})^2} = 1-\frac{SSE}{SST}
+\]
+  
+* This gets spit out by software
+* $X$ and $Y$ are both normal with (empirical) correlation $r$, then $R^2=r^2$
+* In this nice case, it measures how tightly grouped the data are about the regression line
+* Data that are tightly grouped about the regression line can be predicted accurately by the regression line.
+* Unfortunately, the implication does not go both ways.
+* High $R^2$ can be achieved in many ways, same with low $R^2$
+* You should just ignore it completely (and the adjusted version), and encourage your friends to do the same
+
+##High R-squared with non-linear relationship
+
+```{r ggplot-theme, echo=FALSE,message=FALSE}
+library(tidyverse)
+theme_set(theme_minimal(base_family="Times"))
+```
+
+```{r nonlinear-R2,fig.align='center',fig.height=6,message=FALSE,warning=FALSE}
+genY <- function(X, sig) Y = sqrt(X)+sig*rnorm(length(X))
+sig=0.05; n=100
+X1 = runif(n,0,1)
+X2 = runif(n,1,2)
+X3 = runif(n,10,11)
+df = data.frame(x=c(X1,X2,X3), grp = rep(letters[1:3],each=n))
+df$y = genY(df$x,sig)
+ggplot(df, aes(x,y,color=grp)) + geom_point() + 
+  geom_smooth(method = 'lm', fullrange=TRUE,se = FALSE) +
+  ylim(0,4) + stat_function(fun=sqrt,color='black')
+df %>% group_by(grp) %>% summarise(rsq = summary(lm(y~x))$r.sq)
+```
+
+\newpage
+
+## Details with $R^2$
+
+R-Squared can be arbitrarily low when the model is completely correct.
+ 
+```{r} 
+  r2.0 <- function(sig){
+  x <- seq(1,10,length.out = 100)        # our predictor
+  y <- 2 + 1.2*x + rnorm(100,0,sd = sig) # our response; a function of x plus some random noise
+  summary(lm(y ~ x))$r.squared           # print the R-squared value
+}
+
+sigmas <- seq(0.5,20,length.out = 20)
+rout <- sapply(sigmas, r2.0)             # apply our function to a series of sigma values
+plot(rout ~ sigmas, type="b")
+```
+
+
+## And Then...
+
+R-squared can be arbitrarily close to 1 when the model is totally wrong.
+
+```{r}
+set.seed(1)
+x <- rexp(50,rate=0.005)                     # our predictor is data from an exponential distribution
+y <- (x-1)^2 * runif(50, min=0.8, max=1.2)   # non-linear data generation
+plot(x,y)				     # clearly non-linear
+
+```
+
+
+
+## And So On...
+
+R-squared cannot be compared across datasets, even when the same model is used.
+
+```{r}
+x <- seq(1,10,length.out = 100)
+set.seed(1)
+y <- 2 + 1.2*x + rnorm(100,0,sd = 0.9)
+mod1 <- lm(y ~ x)
+summary(mod1)$r.squared
+sum((fitted(mod1) - y)^2)/100 # Mean squared error
+
+
+x <- seq(1,2,length.out = 100)       # new range of x
+set.seed(1)
+y <- 2 + 1.2*x + rnorm(100,0,sd = 0.9)
+mod1 <- lm(y ~ x)
+summary(mod1)$r.squared
+sum((fitted(mod1) - y)^2)/100        # Mean squared error
+```
+
+
+## Last one, I promise
+
+R-squared cannot be compared between a model with untransformed Y and one with transformed Y, or between different transformations of Y. R-squared can easily go down when the model assumptions are better fulfilled.
+
+```{r}
+x <- seq(1,2,length.out = 100)
+set.seed(1)
+y <- exp(-2 - 0.09*x + rnorm(100,0,sd = 2.5))
+summary(lm(y ~ x))$r.squared
+plot(lm(y ~ x), which=3)
+
+plot(lm(log(y)~x),which = 3)
+
+summary(lm(log(y)~x))$r.squared 
+```
+
