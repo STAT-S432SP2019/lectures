@@ -263,7 +263,7 @@ dfTS %>% gather(key='type', value='resids',-c(y,x)) %>%
 ```
 
 \newpage
-## Check the Lag, $e_{i-1} vs e_i$ 
+## Check the Lag, $e_{i-1}$ vs $e_i$ 
 
 ```{r, fig.align='center', fig.height=5}
 # The correlation is between a residual and its next value
@@ -328,7 +328,7 @@ Then we calculate:
 
 To get our $(1-\alpha)100\%$ CI, we find the the quantiles of the differences: $\delta^*_{\alpha/2}$ and $\delta^*_{1 - \alpha/2}$, then our CI is:
 
-\[\left(\overline{x} - \delta^*_{\alpha/2}, \overline{x} - \delta^*_{1 - \alpha/2}\right)\]
+\[\left(\overline{x} - \delta^*_{1-\alpha/2}, \overline{x} - \delta^*_{\alpha/2}\right)\]
 
 \newpage
 
@@ -354,20 +354,19 @@ bootCI
 \newpage
 
 ## Example: $\chi^2$ Distribution
+ Let $X_i\sim \chi_4^2$.
 
-* Let $X_i\sim \chi_4^2$.
-
-* I know if I estimate the mean with $\bar{X}$, then by the CLT (if $n$ is big), 
+We know if we estimate the mean with $\bar{X}$, then by the CLT (if $n$ is big), 
 \[
 \frac{\sqrt{n}(\bar{X}-\Expect{X})}{s} \approx N(0, 1).
 \]
 
-* This gives me a 95% confidence interval like
+This gives me a 95% confidence interval:
 \[
-\bar{X} \pm 2*s/\sqrt{n}
+\bar{X} \pm t_{\alpha/2}*s/\sqrt{n}
 \]
 
-* But I don't want to estimate the mean, I want to estimate the median. The formula
+If we want to estimate the median. The formula
 is a bit messier, but it technically exists.
 
 ```{r, fig.align='center', fig.height=4.5}
@@ -376,7 +375,7 @@ ggplot(data.frame(x=c(0,12)), aes(x)) +
   geom_vline(xintercept = 4, color=blue) + # mean
   geom_vline(xintercept = qchisq(.5,4), color=red) # median
 ```
-
+\newpage
 ## Bootstrapping the Median
 
 The process is not so different for the median.
