@@ -1,0 +1,635 @@
+---
+title: "Chapter 10 of AEPV"
+author: "DJM, Revised NAK"
+date: "26 February 2019"
+output:
+  pdf_document: default
+  slidy_presentation: default
+---
+
+\newcommand{\Expect}[1]{\mathbb{E}\left[ #1 \right]}
+\newcommand{\Var}[1]{\mathbb{V}\left[ #1 \right]}
+\newcommand{\Cov}[2]{\mathrm{Cov}\left[#1,\ #2\right]}
+\newcommand{\given}{\ \vert\ }
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\argmin}[1]{\underset{#1}{\textrm{argmin}}}
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\vX}{\vec{X}}
+\newcommand{\vx}{\vec{x}}
+\newcommand{\vY}{\vec{Y}}
+\newcommand{\vy}{\vec{y}}
+\newcommand{\vbeta}{\vec{\beta}}
+\newcommand{\bhat}{\vec{\widehat{\beta}}}
+
+```{r setup, echo=FALSE, message=FALSE, results='hide'}
+
+
+library(knitr)
+opts_chunk$set(echo=FALSE,
+               cache=TRUE, autodep=TRUE,
+               message=FALSE, warning=FALSE)
+# Turn off meaningless clutter in summary() output
+
+options(show.signif.stars=FALSE)
+
+library(tidyverse)
+library(np)
+
+theme_set(theme_minimal(base_family="Times"))
+green = '#00AF64'
+blue = '#0B61A4'
+red = '#FF4900'
+orange = '#FF9200'
+```
+
+
+## Assumptions on Residuals
+
+```{r}
+set.seed(001)
+n = 100
+x = rnorm(n,0, 3) - 0.5; y = 3+2*x + rnorm(n)*(1+x^2/2)
+
+dfHetero = data.frame(x=x, y=y)
+
+ggplot(dfHetero, aes(x,y)) + geom_point() +
+  geom_smooth(method='lm', se=FALSE,color=red)  
+#  geom_abline(intercept = 3, slope=2, color=green)
+
+lm1 <- lm(y ~ x, dfHetero)
+summary(lm1)$coefficients
+```
+
+Questions: Whats wrong here? Where can we most reliably estimate the linear function? Where is the most unreliable area?
+
+## Standard Errors in Heteroskedacity
+```{r beta.se.sim.function, echo = T}
+ols.heterosked.example = function(n) {
+y = 3 - 2 * x + rnorm(n, 0, sapply(x, function(x) {
+1 + 0.5 * x^2
+}))
+fit.ols = lm(y ~ x)
+return(fit.ols$coefficients - c(3, -2))
+}
+
+ols.heterosked.error.stats = function(n, m = 10000) {
+ols.errors.raw = t(replicate(m, ols.heterosked.example(n)))
+intercept.se = sd(ols.errors.raw[, "(Intercept)"])
+slope.se = sd(ols.errors.raw[, "x"])
+return(c(intercept.se = intercept.se, slope.se = slope.se))
+}
+
+ols.heterosked.error.stats(100)
+```
+## Another One
+```{r}
+set.seed(001)
+x = runif(n, 0,2); y = 3+2*x + rnorm(n)*exp(x)
+
+dfHetero2 = data.frame(x=x, y=y)
+
+ggplot(dfHetero2, aes(x,y)) + geom_point() +
+  geom_smooth(method='lm', se=FALSE,color=red)  
+#  geom_abline(intercept = 3, slope=2, color=green)
+
+lm2 <- lm(y ~ x, dfHetero2)
+summary(lm2)$coefficients
+
+```
+
+What about in this graph? Where is more reliable for estimating the line, and where is less reliable?
+
+
+## Ordinary Least Squares: A review
+
+
+
+In Ordinary Least Squares, we are trying to minimize the sum of squared errors:
+
+\[
+\widehat{\beta} = \argmin{\beta} \sum_{i=1}^n (y_i - \vec{x}_i^\top\beta)^2 = (X^\top X)^{-1} X^\top Y
+\]
+
+The hat matrix is
+
+\[
+\widehat{Y} = X\widehat{\beta} = X(X^\top X)^{-1} X^\top Y = HY
+\]
+
+The Gauss-Markov theorem says if:
+
+  1. $Y_i = \vx^\top_i \beta+\epsilon_i$
+  2. $\Expect{\epsilon_i} = 0$
+  3. $\Var{\epsilon_i}=\sigma^2 <\infty$
+  4. $\Cov{\epsilon_i}{\epsilon_j}=0$
+
+Then $\widehat{\beta} =  (X^\top X)^{-1} X^\top Y$ has the smallest variance of all possible unbiased estimators for $\beta$.
+
+In linear models theory, we call the line based off of $\widehat{\beta}$ the __Best Linear Unbiased Estimator__ (__BLUE__) of the true line/coefficcients.
+
+
+
+
+## Weighting in the Least Squares formula
+
+Weighted least-squares (WLS) is based on the following:
+
+\[
+\widehat{\beta} = \argmin{\beta} \sum_{i=1}^n w_i(y_i - \vec{x}_i^\top\beta )^2 = (X^\top WX)^{-1}X^\top WY
+\]
+
+* If some of those assumptions for G-M are violated, in particular, if $\Var{\epsilon_i}$ depends on $x_i$ (notated like $\sigma^2(x_i))$, then we lose the optimality of OLS.
+
+* Aside: Gauss-Markov is a commonly used justification for OLS in applied work. The logic goes like this: (1) unbiased is good, (2) G-M says OLS is the best linear model which is unbiased. The problem is that (1) is wrong. Unbiased may be good, but often a little bias is better. 
+
+The main question here is, how do we choose the weights? $w_i = ??$
+
+## Choosing $w_i$
+
+Lets consider the data from the first slide.
+
+We could set $w_i = 0$ for a certain range of observations, and $w_i$ for other observations.
+
+For example, use $w_i = 1$ for $|x_i| \leq 2$ and $w_i = 0$ otherwise. 
+
+\[
+\widehat{\beta}= \begin{pmatrix}\widehat{\beta}_0 \\ \widehat{\beta}_1\end{pmatrix} = \argmin{\beta_0, \beta_1} \sum_{i\in S}(y_i - (\beta_0 + \beta_1 x_i))^2, \text{ where } S = \{i: |x_i| \leq 2\}
+\]
+
+```{r, echo = T}
+#Make weights
+w = rep(NA,n)
+w[abs(dfHetero$x) <= 2] <- 1
+w[abs(dfHetero$x) > 2] <- 0
+dfHetero$w <- w
+wlm1 <- lm(y ~ x, dfHetero, weights=w) # For Next Part
+
+ggplot(dfHetero, aes(x,y)) + geom_point() +
+  geom_smooth(method='lm', se = F, color = red) +
+  geom_smooth(method='lm', aes(x = x, y = y, weight=w),  se=FALSE,color=blue)  
+```
+
+Is that any better?
+
+
+## Checking The Models (1)
+
+__Model 1 Summary__:
+```{r} 
+summary(lm1)
+```
+
+__Weighted Model 1 Summary__:
+```{r} 
+summary(wlm1)
+```
+
+## Choosing $w_i$ (Part 2)
+
+Now lets look at the other data from the beginning
+
+Use $w_i = 1$ for $x_i < 1.2$ and $w_i = 0$ otherwise. 
+
+\[
+\widehat{\beta}= \begin{pmatrix}\widehat{\beta}_0 \\ \widehat{\beta}_1\end{pmatrix} = \argmin{\beta_0, \beta_1} \sum_{i\in S}(y_i - (\beta_0 + \beta_1 x_i))^2, \text{ where } S = \{i: x_i < 1.2\}
+\]
+
+```{r, echo = T}
+#Make weights
+w = rep(NA,n)
+w[dfHetero2$x < 1.2] <- 1
+w[dfHetero2$x >= 1.2] <- 0
+dfHetero2$w <- w
+wlm2 <- lm(y ~ x, dfHetero2, weights=w) # For Next Part
+
+ggplot(dfHetero2, aes(x,y)) + geom_point() +
+  geom_smooth(method='lm', se = F, color = red) +
+  geom_smooth(method='lm', aes(x = x, y = y, weight=w),  se=FALSE,color=blue)  
+```
+
+
+
+## Checking The Models (Part 2)
+
+__Model 2 Summary__:
+```{r} 
+summary(lm2)
+```
+
+__Weighted Model 2 Summary__:
+```{r} 
+summary(wlm2)
+```
+
+
+
+
+## The General Issue With Heteroskedacity
+
+So suppose $\Var{\epsilon_i} = \sigma^2(x_i)$. That is our "homoskedasticity" assumption is violated. Should we care?
+
+What if we just use OLS (that is `lm`) anyway?
+
+Some things don't change. 
+
+  1. We still have that $\Expect{\widehat{\beta}} = \beta$. That is OLS __is__ still unbiased.
+  2. We still have that OLS minimizes the sum of squared residuals: among all lines, OLS makes $\sum_{i=1}^n (x_i^\top \widehat{\beta}-y_i)^2$ as small as possible.
+    
+Some things __do__ change.
+
+  1. OLS no longer has the best variance of all unbiased estimators (WLS does).
+  2. The standard errors that `R` produces are wrong. They make it seem "more certain" than is correct (could use the bootstrap to fix it though).
+  3. So are the $F$-tests and $p$-values (again, the bootstrap).
+    
+
+
+
+
+
+## Optimal WLS for Heteroskedacity: $\sigma^2(x)$
+
+So WLS is fairly general. But for now, let's focus on how to use it for heteroskedasticity.
+
+Suppose you __know__ the following:
+    
+  1. $Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$.
+  2. $\Expect{\epsilon_i} = 0$
+  3. $\Var{\epsilon_i} = \sigma^2(x_i)$ ($\sigma^2(\cdot)$ is a function).
+    
+It can be shown that the optimal weights are $w_i = \frac{1}{\sigma^2(\vx_i)}$, making no assumption about the probability distribution of the errors, besides what is above.
+
+This means, that the optimal $\widehat{\beta}$ vector is found by minimizing
+
+\[
+\sum_{i=1}^n\frac{(y_i - \vx_i^\top\widehat{\beta})^2}{\sigma_i^2(\vx_i)}
+\]
+
+See section 10.2.2.1 of Shalizi's book if you are curious... (Actually, I don't recommend that.)
+
+## Weighting in Kernel Regression, an aside
+
+Try to recall linear smoothers, and Kernel Regression in particular.
+
+Kernel Regression can be written as a sort of Weighted Least Squares solution
+\[
+\widehat{c} = \argmin{c} \sum_{j=1}^n \sum_{i=1}^n w_{ij}(y_i - c_j)^2 \quad w_{ij} = \frac{K((x_i-x_j)/h)}{\sum_{i=1}^n K((x_i-x_j)/h)}
+\]
+
+This is locally constant regression.
+
+You don't need to understand this formula, but it can be useful, and it provides some justification for WLS based on previous ideas.
+
+## Using Optimal Weights in LM
+```{r, echo = T}
+#Make weights
+
+dfHetero$w <- 1/(1+x^2/2) # First example had Var(residuals) = (1+x^2/2)
+opt.wlm1 <- lm(y ~ x, dfHetero, weights=w) # For Next Part
+
+with(dfHetero, plot(x,y))
+abline(opt.wlm1, col = red)
+abline(lm1, col = blue)
+```
+
+
+
+## Comparing the different models
+
+__Model 1 Summary__:
+```{r} 
+summary(lm1)
+```
+---
+
+__ Pseudo Weights Model 1 Summary__:
+```{r} 
+summary(wlm1)
+```
+---
+
+__Optimal Weights Model 1 Summary__:
+```{r} 
+summary(opt.wlm1)
+```
+
+## Simulating the differencce between OLS and WLS
+```{r wls.sim.function}
+wls.heterosked.example = function(n) {
+y = 3 - 2 * x + rnorm(n, 0, sapply(x, function(x) {
+1 + 0.5 * x^2
+}))
+fit.wls = lm(y ~ x, weights = 1/(1 + 0.5 * x^2))
+return(fit.wls$coefficients - c(3, -2))
+}
+
+wls.heterosked.error.stats = function(n, m = 10000) {
+wls.errors.raw = t(replicate(m, wls.heterosked.example(n)))
+intercept.se = sd(wls.errors.raw[, "(Intercept)"])
+slope.se = sd(wls.errors.raw[, "x"])
+return(c(intercept.se = intercept.se, slope.se = slope.se))
+}
+
+```
+
+We will compare the simulated OLS and WLS Standard Errors from the model at the very beginning
+```{r using.sim.functions}
+ols.heterosked.error.stats(100)
+
+wls.heterosked.error.stats(100)
+```
+
+If we knew $\sigma^2(x)$, this would be easy as... pie. Unfortunately, it is never that easy.
+
+This means that our new issue is estimating $\sigma^2(x)$.
+
+
+## Variances and Conditional Variances
+
+In general, for a random variable $X$, the variance is defined as:
+\[
+\Var{X} = \Expect{\left(X - \Expect{X}^2\right)}
+\]
+
+Let's consider the variance of the residuals: $\epsilon_i = y_i - \vec{x}_i^\top\beta$
+
+$$
+\begin{aligned}
+\sigma^2(x_i) = \Var{\epsilon_i|x_i} &= \Expect{\epsilon_i - \Expect{\epsilon_i|x_i}^2|x_i} \\
+& = \Expect{\epsilon_i^2|x_i} 
+\end{aligned}
+$$
+
+What is our estimate of this expectation?
+
+
+## Estimating $\sigma^2(x)$, An Iterative Process
+
+1. Use `lm` to estimate $\beta_0$ and $\beta_1$ to get the estimated regression line $\widehat{\mu}(x)$.
+2. Use your estimated regression line to calculate the squared residuals, $e_i^2 = (y_i - \widehat{\mu}(x_i))^2$.
+3. Use nonparametric regression to get $\widehat{\sigma}^2(x)$, which is an estimate of $\Expect{\epsilon_i^2|x_i}$
+3. Use this estimate "know" $\sigma^2(x)$ and use WLS (with `lm(y~x, weights=1/sig2)`)
+4. You could stop here. But since you now have "better" estimates of $\beta_1$ and $\beta_0$, it's better to iterate 2 and 3 until some convergence.
+5. Ok. Something converged, so you return the last estimates of $\beta_0$ and $\beta_1$. But the SEs are not right quite right since we are only estimating $\sigma^2(x)$
+6. To get "correct" SEs, use the bootstrap: 
+    a. Non-parametric: repeat 1-5 $B$ times on resampled data. This can be rather slow...
+    b. Model-based: this is actually pretty hard here, better not to do it.
+
+## An Example Using the First Model
+
+```{r}
+ggplot(dfHetero, aes(x,y)) + geom_point() +
+  geom_smooth(method='lm', se=FALSE,color=red)  
+#  geom_abline(intercept = 3, slope=2, color=green)
+
+lm1 <- lm(y ~ x, dfHetero)
+summary(lm1)$coefficients
+```
+    
+## Using Kernel Regression to Estimate $\sigma^2(x)$
+
+```{r, results = 'hide'}
+set.seed(001)
+n = 100
+x = rnorm(n,0, 3) - 0.5; y = 3+2*x + rnorm(n)*(1+x^2/2)
+
+plot(x, residuals(lm1)^2, ylab = "squared residuals")
+curve((1 + x^2/2)^2, col = "grey", add = TRUE)
+require(np)
+var1 <- npreg(residuals(lm1)^2 ~ x)
+grid.x <- seq(from = min(x), to = max(x), length.out = 300)
+lines(grid.x, predict(var1, exdat = grid.x))
+
+```
+    
+## Iterations for first model
+```{r}
+lm1 <- lm(y ~ x, dfHetero)
+summary(lm1)$coefficients
+```
+
+```{r echo = T, results = 'hide'}
+var1 <- npreg(residuals(lm1)^2 ~ x, data = dfHetero )
+wlm1 <- lm(y ~ x, dfHetero, weights = 1/fitted(var1))
+summary(wlm1)$coefficients
+
+var2 <- npreg(residuals(wlm1)^2 ~ x, data = dfHetero )
+wlm2 <- lm(y ~ x, dfHetero, weights = 1/fitted(var2))
+summary(wlm2)$coefficients
+
+var3 <- npreg(residuals(wlm2)^2 ~ x, data = dfHetero )
+wlm3 <- lm(y ~ x, dfHetero, weights = 1/fitted(var3))
+summary(wlm3)$coefficients
+```
+
+```{r}
+summary(wlm1)$coefficients
+summary(wlm2)$coefficients
+summary(wlm3)$coefficients
+```
+
+## Simplified Iterative Function
+
+```{r shalizi.fn, echo = T, eval = F}
+
+iterative.wls <- function(x, y, tol = 0.01, max.iter = 100) {
+iteration <- 1
+old.coefs <- NA
+regression <- lm(y ~ x)
+coefs <- coefficients(regression)
+while (is.na(old.coefs) || ((max(coefs - old.coefs) > tol) && (iteration <
+max.iter))) {
+variance <- npreg(residuals(regression)^2 ~ x)
+old.coefs <- coefs
+iteration <- iteration + 1
+regression <- lm(y ~ x, weights = 1/fitted(variance))
+coefs <- coefficients(regression)
+}
+return(list(regression = regression, variance = variance, iterations = iteration))
+}
+
+```
+
+
+## Alternative, $\log$ of residuals
+
+1. Use `lm` to estimate $\beta_0$ and $\beta_1$.
+2. Use your estimated regression line to calculate the squared residuals, $e_i^2 = (y_i - \widehat{\mu}(x_i))^2$.
+2. Calculate $\log(\widehat{e_i}^2)$ and use `npreg` to estimate $\log \sigma^2(x)$.
+3. Now pretend that you "know" $\sigma^2(x)$ (take $\exp$ of your estimate from 2.) and use WLS (with `lm(y~x, weights=1/sig2)`)
+4. You could stop here. But since you now have "better" estimates of $\beta_1$ and $\beta_0$, it's better to iterate 2 and 3 until some convergence.
+5. Ok. Something converged, so you return the last estimates of $\beta_0$ and $\beta_1$. But the SEs are not right (because you "know" $\sigma^2(x)$ but you don't __know__ it).
+6. To get SEs, use the bootstrap: 
+    a. Non-parametric: repeat 1-5 $B$ times on resampled data. Still slow.
+    b. Model-based: this is actually pretty hard here, better not to do it.
+
+## Looking at Log of $e_i^2$
+
+```{r, results = 'hide'}
+
+plot(x, log(residuals(lm1)^2), ylab = "Log of squared residuals")
+curve(log((1 + x^2/2)^2), col = "grey", add = TRUE)
+require(np)
+logvar1 <- npreg(log(residuals(lm1)^2) ~ x)
+grid.x <- seq(from = min(x), to = max(x), length.out = 300)
+lines(grid.x, predict(logvar1, exdat = grid.x))
+
+```
+
+## Same Example, Now using the log
+
+```{r, echo = T, results = 'hide'}
+logvar1 <- npreg(log(residuals(lm1)^2) ~ x, data = dfHetero )
+wlm1 <- lm(y ~ x, dfHetero, weights = 1/exp(fitted(logvar1)))
+summary(wlm1)$coefficients
+
+logvar2 <- npreg(log(residuals(wlm1)^2) ~ x, data = dfHetero )
+wlm2 <- lm(y ~ x, dfHetero, weights = 1/exp(fitted(logvar2)))
+summary(wlm2)$coefficients
+
+logvar3 <- npreg(log(residuals(wlm2)^2) ~ x, data = dfHetero )
+wlm3 <- lm(y ~ x, dfHetero, weights = 1/exp(fitted(logvar3)))
+summary(wlm3)$coefficients
+```
+```{r}
+summary(wlm1)$coefficients
+summary(wlm2)$coefficients
+summary(wlm3)$coefficients
+```
+
+
+
+## A Bigger Example
+
+This is a (slightly modified) portion of a real job interview.
+
+It is a very simple application of heteroskedasticity.
+
+Heteroskedasticity appears frequently with financial data, so those companies like to see if you can handle it.
+
+## The set up
+
+The dataset `jobInt` contains data from a simple linear model with heteroskedastic noise.
+
+```{r, echo=T}
+set.seed(02-26-2019)
+n=250
+x = rnorm(n, sd=1.5)
+sigma.x <- function(x) (5*(sin(x)^2)+2)*(x>=0) + (x^2+1)*(x<0)
+y = -1+2*x + sigma.x(x)*rnorm(n)
+jobInt = data.frame(x=x, y=y)
+```
+
+In other words, for $i=1,\ldots,250$,
+
+\[
+y_i = \beta_0 + \beta_1 x_i + \sigma(x_i) \epsilon_i \quad\quad\quad \epsilon_i \sim \mbox{N}(0,1).
+\]
+
+You know nothing about (the function) $\sigma(\cdot)$.
+
+Your goal is to estimate $(\beta_0,\ \beta_1)$ as well as possible, and provide a CI.
+
+## How do I do this?
+
+First things first, EDA.
+```{r, echo = T, fig.align='center', fig.width=10, fig.height=6}
+ggplot(jobInt, aes(x,y)) + geom_point(color=blue) +
+  geom_smooth(method='lm',se=FALSE,color=red)
+basicMod = lm(y~x)
+```
+
+## QQ-Plot of Residuals
+
+```{r, fig.align='center', fig.width=10, fig.height=4}
+#source('https://raw.githubusercontent.com/tidyverse/ggplot2/master/R/stat-qq-line.R')
+jobInt$resids = residuals(basicMod)
+ggplot(jobInt, aes(sample=resids)) + geom_qq(color=blue) + stat_qq_line(color=red)
+#ggplot(jobInt, aes(x, resids)) + geom_point(color=blue) + 
+#  geom_hline(yintercept=0, color=red)
+```
+
+## Examine Residuals vs. Fitted values
+
+```{r, fig.align='center', fig.width=10, fig.height=4}
+jobInt$fitted = fitted(basicMod)
+ggplot(jobInt, aes(fitted, resids)) + geom_point(color=blue) + 
+  geom_hline(yintercept=0, color=red)
+```
+
+## Code for Iterative WLS using Log of Squared Residuals
+
+This code takes in data and does steps 1-5. It is __not__ optimized for speed, but for readability, so run with care.
+
+```{r, results='hide', echo=TRUE}
+heteroWLS <- function(dataFrame, tol = 1e-4, maxit = 100, track=FALSE){
+  # inputs: a data object, optional: tolerance, max.iterations, and progress tracker (prints)
+  # outputs: estimated betas and weights
+  require(np)
+  ols = lm(y~x, data=dataFrame)
+  b = coefficients(ols)
+  conv = FALSE
+  for(iter in 1:maxit){ # don't let this run forever
+    if(conv) break # if the b's stop moving, get out of the loop
+    logSqResids = log(residuals(ols)^2) 
+    winv = exp(predict(npreg(logSqResids~x, data=dataFrame, tol=1e-2, ftol=1e-2)))
+    winv[winv < tol] = tol # zero inverse weights are bad, make them small
+    ols = lm(y~x, weights = 1/winv, data=dataFrame) #weights are 1 / estim.variance
+    newb = coefficients(ols)
+    conv.crit = sum((b-newb)^2) # calculate how much b moved
+    if(track) cat('\n', iter, '/', maxit, ' conv.crit = ', conv.crit) # print progress
+    conv = (conv.crit < tol) # check if the b's changed much
+    b = newb # update the coefficient estimates
+  }
+  return(list(betas=b, weights = winv, log2resids = log(residuals(ols)^2)))
+}
+```
+
+## Log of Squared Residuals in OLS Model 
+```{r, autodep=TRUE, echo=FALSE, fig.align='center', fig.width=10,fig.height=5}
+job.lm <- lm(y ~ x, jobInt)
+jobInt$log2resids = log(residuals(job.lm)^2)
+ggplot(jobInt, aes(x,log2resids)) + geom_point(color=blue) +
+  geom_smooth(color = red, se = F)
+```
+
+## Running Code (Slow...)
+
+```{r CIs, cache=TRUE,results='hide',echo=TRUE}
+start.time <-proc.time()[[3]]
+
+resampWLS <- function(dataFrame,...){ # ... means options passed on
+  rowSamp = sample(1:nrow(dataFrame), size=nrow(dataFrame), replace=TRUE)
+  return(heteroWLS(dataFrame[rowSamp,],...)$betas) # passed things on if desired
+}
+
+B = 100 # 
+alp = .05
+origBetas = heteroWLS(jobInt)
+time.1 <- proc.time()[[3]] - start.time
+
+bootBetas <- replicate(B, resampWLS(jobInt, maxit=20))
+qq = apply(bootBetas, 1, quantile, probs=c(1-alp/2, alp/2))
+CI = cbind(origBetas$betas, 2*origBetas$betas - t(qq))
+colnames(CI) = c('coef', rev(colnames(CI)[2:3]))
+
+time.2 <- proc.time()[[3]] - time.1
+```
+
+```{r , echo = T}
+# Time to get WLS function to converge on weights
+time.1
+
+# Time to get bootstrapped CIs
+time.2
+
+CI
+```
+
+## Log of Squared Residuals in WLS Model 
+```{r, autodep=TRUE, echo=FALSE, fig.align='center', fig.width=10,fig.height=5}
+jobInt$log2resids = origBetas$log2resids
+ggplot(jobInt, aes(x,log2resids)) + geom_point(color=blue) +
+  geom_smooth(color = red, se = F)
+```
