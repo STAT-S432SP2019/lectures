@@ -1,0 +1,492 @@
+---
+title: 'Chapter 4 in ISL: Generalized Linear Models, Logistic Regression, & Classification'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "19 March 2019"
+---
+
+
+
+\newcommand{\Expect}[1]{E\left[ #1 \right]}
+\newcommand{\Var}[1]{\mathbb{V}\left[ #1 \right]}
+\newcommand{\Cov}[2]{\mathrm{Cov}\left[#1,\ #2\right]}
+\newcommand{\given}{\ \vert\ }
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\tr}[1]{\mbox{tr}(#1)}
+\newcommand{\brt}{\widehat{\beta}_{r,t}}
+\newcommand{\brl}{\widehat{\beta}_{r,\lambda}}
+\newcommand{\bls}{\widehat{\beta}_{ls}}
+\newcommand{\blt}{\widehat{\beta}_{l,t}}
+\newcommand{\bll}{\widehat{\beta}_{l,\lambda}}
+
+\newcommand{\argmin}[1]{\underset{#1}{\textrm{argmin}}}
+
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\vX}{\vec{X}}
+\newcommand{\X}{\vX}
+\newcommand{\vx}{\vec{x}}
+\newcommand{\vY}{\vec{Y}}
+\newcommand{\vy}{\vec{y}}
+\newcommand{\vbeta}{\vec{\beta}}
+\newcommand{\bhat}{\widehat{\beta}}
+\newcommand{\vbhat}{\vec{\widehat{\beta}}}
+\newcommand{\sumin}{\sum_{i=1}^n}
+\newcommand{\sumjp}{\sum_{j=1}^p}
+
+
+```{r setup, echo=FALSE,results='hide',include=FALSE}
+# Need the knitr package to set chunk options
+library(knitr)
+# Set knitr options for knitting code into the report:
+# - Don't print out code (echo)
+# - Save results so that code blocks aren't re-run unless code changes (cache),
+# _or_ a relevant earlier code block changed (autodep), but don't re-run if the
+# only thing that changed was the comments (cache.comments)
+# - Don't clutter R output with messages or warnings (message, warning)
+  # This _will_ leave error messages showing up in the knitted report
+opts_chunk$set(message=FALSE, warning=FALSE, fig.align='center',fig.width=8,
+               fig.height=4,cache=TRUE,autodep=TRUE, global.par=TRUE)
+par(las=1, bty='n', pch=19, ann=FALSE)
+library(tidyverse)
+library(gridExtra)
+library(MASS)
+#theme_set(theme_minimal(base_family="Times"))
+green = '#00AF64'
+blue = '#0B61A4'
+red = '#FF4900'
+orange = '#FF9200'
+```
+
+## Generalized Linear Models
+
+> It should be noted that depending on the time frame that you may read about "GLMs", this may refer to two different types of modeling schemes
+
+* GLM $\to$ General Linear Model: This is the older scheme that now refers to Linear Mixed Models or LMMs. This has more with correlated error terms and "random effects" in  model.
+
+* These days GLM refers to __Generalized Linear Model__. Developed by  Nelder, John; Wedderburn, Robert (1972). This takes the concept of a linear model and generalizes it to response variables that do not have a normal distribution. __This is what GLM means today__. (I haven't run into an exception, but there might be ones out there depending on the discipline.)
+
+## Components of Linear Model
+
+We will start with the idea of the regression model we have been working with the following model in different ways.
+
+\[
+\Expect{Y | \vX = \vx} = \mu(\vx) = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p.
+\]
+
+Here we are saying that the mean value of $Y$, $\mu(\vx)$, is determined by the values of our predictor variables.
+
+For making predictions, we have to add in a ranom component (because no model is perfect).
+
+\[
+Y = \mu(\vx) + \epsilon = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p + \epsilon.
+\]
+
+We have two components here.
+
+1. A deterministic component.
+
+2. A random component: $\epsilon \sim N(0, \sigma^2)$.
+
+The random component means that $Y \sim N(\mu(\vx), \sigma^2)$.
+
+The important part here is that the mean value of $Y$ is assumed to be _linearly_.
+
+\newpage
+
+## Introduction to Link Functions
+
+We have played around a bit with different functions we can try on $Y$ if we do not get the proper distribution for the residuals.
+
+\[
+\begin{aligned}
+g(Y) &= \log(Y) 
+&= \eta(\vx) + \epsilon = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p + \epsilon
+\end{aligned}
+\]
+
+
+What does this mean for $Y$ itself?
+
+\[
+\begin{aligned}
+  Y &= g^{-1}\left( \eta(\vx) + \epsilon \right) = e^{\eta(\vx) + \epsilon}\\ 
+  \mu(\vx)&= e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p + \epsilon}
+\end{aligned}
+\]
+
+* Another common option is $g(Y) = Y^p$ where it could be hoped that $p = 1$ but more often the best $p$ is not...
+
+These functions are used to get a linear relationship between $g(Y)$ and our predictor variables $x_1, \dots, x_p$. They are supposed to be the __link__ of $Y$ with Normality and _linearity_.
+
+## Form of Generalized Linear Models
+
+The form of Generalized Linear Models takes the basic form:
+
+\[
+\begin{aligned}
+g\left(\Expect{Y|\vX=\vx}\right) &= g\left(\mu(\vx)\right)\\
+&=  \eta(\vx) \\
+\end{aligned}
+\]
+
+There are now three components we consider:
+
+1. A deterministic component.
+
+2. A random component: $\epsilon \sim N(0, \sigma^2)$.
+
+3. A link function $g(y)$ such that if $Expect{Y | \vX = \vx} = \mu(\vx)$, then
+\[
+\begin{aligned}
+g\left(\mu(\vx)\right) &= \eta(\vx)\\
+&= \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p
+\end{aligned}
+\]
+
+With GLMs, we are now paying attention to a few details.
+
+* $Y$ is not restricted to Normal distributions; that's the entire point...
+
+* The link function is determined by the distribution of $Y$
+  - The distribution of $Y$ determines the form of $\Expect{Y | \vX = \vx}$ which we write as $\mu(\vx)$
+
+\newpage
+
+## Various Types of GLMs
+
+| __Distribution of $Y$__ | __Support of $Y$__ | __Typical Uses__ | __Link Name__ | __Link Function: $g(y)$__|
+|----------|----------|---------|------|-------------------|---|
+|Normal| $\left(-\infty, \infty\right)$ | Linear response data | Identity | $g\left(\mu(\vx)\right) = \mu(\vx)$ |
+|Exponentail| $\left(0, \infty\right)$ | Exponential Processes | Inverse | $g\left(\mu(\vx)\right) = \frac{1}{\mu(\vx)}$ |
+|Poisson| $0,1,2,\dots$ | Counting| Log | $g\left(\mu(\vx)\right) = \log(\vx)$ |
+|Binomial| $0,1,2,\dots, n$ | Classification | Logit | $g\left(\mu(\vx)\right) = \text{ln}\left(\frac{\mu(\vx)}{1-\mu(\vx)}\right)$ |
+
+We will mainly explore Logistic Regression, which uses the Logit function. 
+
+This is one of the ways of dealing with Classification.
+
+## First, Classification Problems, In General.
+
+Classification can be simply define as determing what the outcome is for a discrete random variable.
+
+* An online banking service must be able to determine whether or nnot a transaction being performed on the site is fraudulent, on the basis of the user's past tranaction history, balance, an other potential predictors. This a common use of statistical classification known as __Fraud detection__
+
+* On the basis of DNA sequence data for a number of patients with and without a given disease a biologist would like to figure out which DNA mutations are disease-causing and which are not.
+
+* A person arrives at the emergency room with a set of symptoms that possible be attributed tyo one of three medical conditions: _stroke, drug overdose, epilectic seizure_. We would want to choose or __classify__ the person into one of the three categories.
+
+In each of these situations what is the distribution of $Y =$ the category an indidual falls into?
+
+## An Example, Default
+
+We will consider an example where we are interested in predicting whether an
+individual will default on his or her credit card payment, on the basis of
+annual income, monthly credit card balance and student status. (Did I pay my bills... Maybe I should check.)
+
+```{r load.Default.data, echo = T}
+Default <- read.csv(file = "data/Default.csv")
+
+# Converting Balance and Income to Thousands of dollars
+
+Default$balance <- Default$balance/1000
+Default$income <- Default$income/1000
+
+head(Default)
+```
+
+* `student` whether the person is a student or not.
+* `default` is whether they defaulted
+* `balance` is there total balance on their credit cards.
+* `income` is the income of the individual.
+
+\newpage
+
+
+## A little bit of EDA
+ 
+```{r default.scatter, echo = F}
+ggplot(Default, aes(income, balance, shape = default, color = default)) +
+  geom_point() +
+  scale_shape_manual(values=c(1, 3))
+```
+
+```{r default.boxplots, echo = F}
+library(gridExtra)
+
+p1 <- ggplot(Default, aes(x = default, y = income, color = default)) +
+  geom_boxplot()
+
+p2 <- ggplot(Default, aes(x = default, y = balance, color = default)) +
+  geom_boxplot()
+
+grid.arrange(p1,p2, nrow = 1)
+```
+
+Try to describe what you see.
+
+
+## Logistic Regression
+
+For each individual $Y_i$ we are trying to model if that individual is going to default or not. 
+
+Hopefully you can see that there is not a clear division between those that default versus those that don't. So there is a chance that an individual will default, and a chance they won't that is going to be dependent on their balance, and maybe income.
+
+We will start by modeling $P\text{(Default | Balance}) \equiv P(Y | X)$.
+
+First, we we will code the default to a 1, 0 format to make modeling this probability compatible with the standard form of the with a special case of the Binomial$(n,p$) distribution where $n =1$
+
+\[
+P(Y|X) = p(X)^y(1-p(X))^{1-y} \text{ where } y=0,1 
+\]
+
+Logistic regression creates a model for $P(Y=1|X)$ which we will abbreviate as $p(X)$
+
+```{r default.coding}
+# Set an ifelse statement to handle the variable coding
+
+#Create a new varible called def with the coded values
+Default$def <- ifelse(Default$default == "Yes", 1,0)
+
+```
+
+Before we get into the actual Logistic Regression model, lets start with the idea that if we are trying to predict $p(X)$, when should we should we say that someone is going to default?
+
+* A possiblity may be we classify the person as potentially defaulting if $p(X) > 0.5$
+
+* Would it make sense to predict somone as a risk for defaulting at some other cutoff?
+
+## Plotting
+
+```{r def.plots, fig.width = 6}
+def.plot <- ggplot(Default, aes(x = balance, y = def, color = def)) + geom_point() +
+  xlab("Balance") + ylab("Default")
+
+def.plot
+```
+
+## Why Not Linear Regression
+
+We _could_ use standard linear regression to model $p(\text{Balance}) = p(X)$. The line on this plot represents the estimated probability of defaulting.
+
+```{r def.lin.plot}
+def.plot.lm <- ggplot(Default, aes(x = balance, y = def, color = def)) + geom_point()+
+  xlab("Balance") + ylab("Default") +
+  geom_smooth(method = 'lm')
+
+def.plot.lm
+```
+
+Can you think of any issues with this? Think about possible values of $p(X)$.
+
+## Plotting the Logistic Regression Curve
+
+Here is the curve for a logistic regression.
+
+```{r def.logit.plot}
+def.plot.logit <- ggplot(Default, aes(x = balance, y = def, color = def)) + geom_point() +
+  xlab("Balance") + ylab("Default") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"))
+  
+def.plot.logit
+```
+
+How does this compare to the previous plot?
+
+## The Logistic Model in GLM
+
+Even though we are trying to model a $p(X)$, we are trying to model a mean.
+
+What is the mean or Expected Values of a binomial random variable $Y|X \sim$ Binomial$(1, p(X))$?
+
+Before we get into the link function, lets look at the function that models $p(X)$
+
+\[
+p(X) = \dfrac{e^{\beta_0 + \beta_1X}}{1 + e^{\beta_0 + \beta_1X}}
+\]
+
+The __link functions__ for Logistic Regression is the __logit function__ which is
+
+\[
+\text{logit}(x) = \frac{m}{1-m} \text{ where } 0<x<1
+\]
+
+Which for $\Expect{Y | X} = \mu(X) = p(X)$ is
+
+\[
+\log\left( \frac{p(X)}{1-p(X)} \right) = \beta_0 + \beta_1 X
+\]
+
+Notice that now we have a linear function of the coefficients.
+
+Something to pay attention to: When we are interpreting the coefficients, we are talking about how the __log odds__ change.
+
+The coefficients tell us what the percentage increase of the odds ratio woud be.
+
+\[
+\text{Odds} = \frac{p(X)}{1-p(X)}
+\]
+
+## Estimating The Coefficients: `glm` function
+
+The function that is used for GLMs in R is the `glm` function.
+
+`glm(formula, family = gaussian, data)`
+
+* `formula`: the linear formula you are using when the link function is applied to $\mu(vX)$. This has same format as `lm`, e.g, `y ~ x`
+
+* `family`: the distribution of $Y$ which in logistic regression is `binomial`
+
+* `data`: the dataframe... as has been the case before.
+
+## GLM Function on Default Data
+
+```{r default.glm}
+default.fit <- glm(def ~ balance, family = binomial, data = Default)
+
+summary(default.fit)
+```
+
+## Default Predictions
+
+"Predictions" in GLM models get a bit trickier than previously.
+
+* We can predict in terms of the linear response, $g(\mu(x))$, e.g., log odds in logistic regression.
+
+* Or we can predict in terms of the actual response variable, e.g., $p(x)$ in logistic regression.
+
+\[
+\log\left(\frac{\widehat{p}(x)}{1-\widehat{p}(x)}\right) = -10.6513 + 5.4090x
+\]
+
+Which may not be very useful in application.
+
+\[
+\widehat{p}(x) = \frac{e^{-10.6513 + 5.4090x}}{1 + e^{-10.6513 + 5.4090x}}
+\]
+
+So for someone with a credict balance of 1000 dollars, we would predict that their probability of defaulting is
+
+\[
+\widehat{p}(x) = \frac{e^{-10.6513 + 5.4090\cdot 1}}{1 + e^{-10.6513 + 5.4090 \cdot 1}} = 0.00526
+\]
+
+And for someone with a credit balance of 2000 dollars, our prediction probability for defaulting is 
+
+\[
+\widehat{p}(x) = \frac{e^{-10.6513 + 5.4090\cdot 2}}{1 + e^{-10.6513 + 5.4090 \cdot 2}} = 0.54158 
+\]
+
+## Predict Function for GLMS
+
+We can compute our predictions by hand but, that's not super efficient. We can infact use the `predict` function on `glm` objects just like we did with `lm` objects.
+
+With GLMs, our `predict` function now takes the form:
+
+`predict(glm.model, newdata, type)`
+
+* `glm.model` is the `glm` object you created to model the data.
+* `newdata` is the data frame with values of your predictor variables you want predictions for. If no argument is given (or its incorrectly formatted) you will get the fitted values for your training data.
+* `type` chooses which form of prediction you want.
+    - `type = "link"` (the default option) gives the predictions for the link function, i.e, the linear function of the GLM. So for logistic regression it will spit out the predicted values of the log odds.
+    - `type = "response"` gives the prediction in terms of your response variable. For Logistic Regression, this is the predicted probabilities.
+    - `type = "terms"` returns a matrix giving the fitted values of each term in the model formula on the linear predictor scale.
+
+## Using `predict` on Default Data
+
+Let's get predictions from the logistic regression model that's been created.
+
+```{r glm.predict}
+predict(default.fit, newdata = data.frame(balance = c(1,2)), type = "link")
+
+predict(default.fit, newdata = data.frame(balance = c(1,2)), type = "response")
+```
+
+## Classifying Predictions
+
+If we are looking at the log odds ratio, we will classify an observation as a $\widehat{Y}= 1$ if the log odds is non-negative.
+
+```{r class.predict1}
+Default$pred.link <- predict(default.fit)
+Default$pred.class1 <-as.factor(ifelse(Default$pred.link >=0, 1, 0))
+```
+
+Or we can classify based off the predicted probabilities, i.e., $\widehat{Y} = 1$ if $\widehat{p}(x) \geq 0.5$.
+
+```{r class.predict2}
+Default$pred.response <- predict(default.fit, type = "response")
+Default$pred.class2 <-as.factor(ifelse(Default$pred.response >=0.5, 1, 0))
+```
+
+Which will produce identical classifications.
+
+```{r}
+sum(Default$pred.class1 != Default$pred.class2)
+```
+
+## Assessing Model Accuracy
+
+We can assess the accuracy of the model using a confusion matrix using the `confusionMatrix` function, which is part of the `caret` package.
+
+* Note that this will require you to install the `e1071` package (which I can't fathom why they would do it this way...).
+
+`confusionMatrix(Predicted, Actual)`
+
+```{r default.confusion.matrix}
+library(caret)
+
+confusionMatrix(Default$pred.class1, as.factor(Default$def))
+```
+
+## Categorical  Predictors
+
+Having categorical variables and including multiple predictors is pretty easy. It's just like with standard linear regression.
+
+Let's look at the model that just uses the `student` variable to predict the probability of defaulting.
+
+```{r cat.glm.fit}
+default.fit2 <- glm(def ~ student, family = binomial, data = Default)
+
+summary(default.fit2)
+
+predict(default.fit2, newdata = data.frame(student = c("Yes", "No")), type = "response")
+```
+
+Would student status by itself be useful for classifying individuals as defaulting or no?
+
+## Multiple Predictors
+
+Similarly (Why isn't there an 'i' in that?) to categorical predictors we can easily include multiple predictor variables. Why? Because with the link function, we are just doing linear regression.
+
+\[
+p(\vX) = \dfrac{e^{\beta_0 + \beta_1X_1 + \beta_2X_2 \dots + \beta_pX_p}}{1 + e^{\beta_0 + \beta_1X_1 + \beta_2X_2 \dots + \beta_pX_p}}
+\]
+
+The __link functions__ is still the same.
+
+\[
+\text{logit}(m) = \frac{m}{1-m} \text{ where } 0<x<1
+\]
+
+Which for $\Expect{Y | \vX} = \mu(\vX) = p(\vX)$ is
+
+\[
+\log\left( \frac{p(\vX)}{1-p(\vX)} \right) = \beta_0 + \beta_1X_1 + \beta_2X_2 \dots + \beta_pX_p
+\]
+
+## Multiple Predictors in Default Data
+
+Lets look at how the model does with using `balance`, `income`, and `student` as the predictor variables.
+
+```{r default.fit.3}
+default.fit3 <- glm(def ~ balance + income + student, family = binomial, data = Default)
+
+summary(default.fit3)
+
+predict(default.fit3, newdata = data.frame(balance = c(1,2), student = c("Yes", "No"), income=40), type = "response")
+
+predict(default.fit3, newdata = data.frame(balance = c(1), student = c("Yes", "No"), income=c(10, 50)), type = "response")
+```
