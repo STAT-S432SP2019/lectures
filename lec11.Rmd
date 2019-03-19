@@ -139,7 +139,7 @@ There are now three components we consider:
 
 2. A random component: $\epsilon \sim N(0, \sigma^2)$.
 
-3. A link function $g(y)$ such that if $Expect{Y | \vX = \vx} = \mu(\vx)$, then
+3. A link function $g(y)$ such that if $\Expect{Y | \vX = \vx} = \mu(\vx)$, then
 \[
 \begin{aligned}
 g\left(\mu(\vx)\right) &= \eta(\vx)\\
