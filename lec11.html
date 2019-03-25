@@ -430,7 +430,7 @@ p(X) = \dfrac{e^{\beta_0 + \beta_1X}}{1 + e^{\beta_0 + \beta_1X}}
 \]</span></p>
 <p>The <strong>link functions</strong> for Logistic Regression is the <strong>logit function</strong> which is</p>
 <p><span class="math display">\[
-\text{logit}(x) = \frac{m}{1-m} \text{ where } 0&lt;x&lt;1
+\text{logit}(x) = \log\left(\frac{m}{1-m}\right) \text{ where } 0&lt;x&lt;1
 \]</span></p>
 <p>Which for <span class="math inline">\({E\left[ Y | X \right]} = \mu(X) = p(X)\)</span> is</p>
 <p><span class="math display">\[
@@ -621,7 +621,7 @@ p({{\underline{X}}}) = \dfrac{e^{\beta_0 + \beta_1X_1 + \beta_2X_2 \dots + \beta
 \]</span></p>
 <p>The <strong>link functions</strong> is still the same.</p>
 <p><span class="math display">\[
-\text{logit}(m) = \frac{m}{1-m} \text{ where } 0&lt;x&lt;1
+\text{logit}(m) = \log\left(\frac{m}{1-m}\right) \text{ where } 0&lt;x&lt;1
 \]</span></p>
 <p>Which for <span class="math inline">\({E\left[ Y | {{\underline{X}}}\right]} = \mu({{\underline{X}}}) = p({{\underline{X}}})\)</span> is</p>
 <p><span class="math display">\[

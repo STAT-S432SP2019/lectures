@@ -1,9 +1,9 @@
 ---
 title: 'Chapter 4 in ISL: Generalized Linear Models, Logistic Regression, & Classification'
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 date: "19 March 2019"
 ---
 
@@ -311,7 +311,7 @@ p(X) = \dfrac{e^{\beta_0 + \beta_1X}}{1 + e^{\beta_0 + \beta_1X}}
 The __link functions__ for Logistic Regression is the __logit function__ which is
 
 \[
-\text{logit}(x) = \frac{m}{1-m} \text{ where } 0<x<1
+\text{logit}(x) = \log\left(\frac{m}{1-m}\right) \text{ where } 0<x<1
 \]
 
 Which for $\Expect{Y | X} = \mu(X) = p(X)$ is
@@ -468,7 +468,7 @@ p(\vX) = \dfrac{e^{\beta_0 + \beta_1X_1 + \beta_2X_2 \dots + \beta_pX_p}}{1 + e^
 The __link functions__ is still the same.
 
 \[
-\text{logit}(m) = \frac{m}{1-m} \text{ where } 0<x<1
+\text{logit}(m) = \log\left(\frac{m}{1-m}\right) \text{ where } 0<x<1
 \]
 
 Which for $\Expect{Y | \vX} = \mu(\vX) = p(\vX)$ is
