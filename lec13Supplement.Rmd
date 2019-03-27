@@ -1,0 +1,269 @@
+---
+title: 'Classification Example with 3 Groups: Iris Dataset'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "28 March 2019"
+---
+
+
+
+\newcommand{\Expect}[1]{E\left[ #1 \right]}
+\newcommand{\Var}[1]{\mathbb{V}\left[ #1 \right]}
+\newcommand{\Cov}[2]{\mathrm{Cov}\left[#1,\ #2\right]}
+
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\tr}[1]{\mbox{tr}(#1)}
+\newcommand{\brt}{\widehat{\beta}_{r,t}}
+\newcommand{\brl}{\widehat{\beta}_{r,\lambda}}
+\newcommand{\bls}{\widehat{\beta}_{ls}}
+\newcommand{\blt}{\widehat{\beta}_{l,t}}
+\newcommand{\bll}{\widehat{\beta}_{l,\lambda}}
+
+\newcommand{\argmin}[1]{\underset{#1}{\textrm{argmin}}}
+
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\vX}{\vec{X}}
+\newcommand{\X}{\vX}
+\newcommand{\vx}{\vec{x}}
+\newcommand{\vY}{\vec{Y}}
+\newcommand{\vy}{\vec{y}}
+\newcommand{\vmu}{\vec{\mu}}
+\newcommand{\vSigma}{\vec{\Sigma}}
+\newcommand{\vbeta}{\vec{\beta}}
+\newcommand{\bhat}{\widehat{\beta}}
+\newcommand{\vbhat}{\vec{\widehat{\beta}}}
+\newcommand{\sumin}{\sum_{i=1}^n}
+\newcommand{\sumjp}{\sum_{j=1}^p}
+
+\newcommand\given{\:\vert\:}
+
+
+```{r setup, echo=FALSE,results='hide',include=FALSE}
+# Need the knitr package to set chunk options
+library(knitr)
+# Set knitr options for knitting code into the report:
+# - Don't print out code (echo)
+# - Save results so that code blocks aren't re-run unless code changes (cache),
+# _or_ a relevant earlier code block changed (autodep), but don't re-run if the
+# only thing that changed was the comments (cache.comments)
+# - Don't clutter R output with messages or warnings (message, warning)
+  # This _will_ leave error messages showing up in the knitted report
+opts_chunk$set(message=FALSE, warning=FALSE, fig.align='center',fig.width=8,
+               fig.height=4,cache=TRUE,autodep=TRUE, global.par=TRUE)
+par(las=1, bty='n', pch=19, ann=FALSE)
+
+library(tidyverse)
+library(gridExtra)
+library(MASS)
+library(e1071)
+library(ggplot2)
+library(ellipse)
+
+#theme_set(theme_minimal(base_family="Times"))
+green = '#00AF64'
+blue = '#0B61A4'
+red = '#FF4900'
+orange = '#FF9200'
+
+set.seed(111)
+```
+
+The following example is mainly taken from [https://daviddalpiaz.github.io/r4sl/generative-models.html](https://daviddalpiaz.github.io/r4sl/generative-models.html)
+
+## Example of LDA With 3 Classes
+
+There is "famous" dataset in R called the "Iris".
+
+There are three iris flowers from three different species.
+
+  1. Iris-setosa
+  2. Iris-versicolor
+  3. Iris-virginica
+  
+There are four features for predicting the species of flower.
+
+  1. Sepal length (cm)
+  2. Sepal width (cm)
+  3. Petal length (cm)
+  4. Petal width (cm)
+
+## Investigating the Data
+
+```{r}
+set.seed(430)
+iris_obs = nrow(iris)
+iris_idx = sample(iris_obs, size = trunc(0.50 * iris_obs))
+# iris_index = sample(iris_obs, size = trunc(0.10 * iris_obs))
+iris_trn = iris[iris_idx, ]
+iris_tst = iris[-iris_idx, ]
+```
+
+
+```{r, fig.height=8, fig.width=8}
+caret::featurePlot(x = iris_trn[, c("Sepal.Length", "Sepal.Width", 
+                                    "Petal.Length", "Petal.Width")], 
+                   y = iris_trn$Species,
+                   plot = "density", 
+                   scales = list(x = list(relation = "free"), 
+                                 y = list(relation = "free")), 
+                   adjust = 1.5, 
+                   pch = "|", 
+                   layout = c(2, 2), 
+                   auto.key = list(columns = 3))
+
+```
+
+```{r, fig.height=8, fig.width=8}
+
+caret::featurePlot(x = iris_trn[, 1:4], 
+            y = iris_trn$Species, 
+            plot = "ellipse",
+            ## Add a key at the top
+            auto.key = list(columns = 3))
+
+```
+
+
+```{r, fig.height=4, fig.width=7}
+caret::featurePlot(x = iris_trn[, c("Sepal.Length", "Sepal.Width", 
+                                    "Petal.Length", "Petal.Width")], 
+                   y = iris_trn$Species,
+                   plot = "box",
+                   scales = list(y = list(relation = "free"),
+                                 x = list(rot = 90)),
+                   layout = c(4, 1))
+```
+
+What is a good classifier?
+
+## Using LDA
+
+```{r}
+library(MASS)
+iris_lda = lda(Species ~ ., data = iris_trn)
+iris_lda
+```
+
+Here we see the estimated $\hat{\pi}_k$ and $\hat{\mu}_k$ for each class.
+
+```{r}
+is.list(predict(iris_lda, iris_trn))
+names(predict(iris_lda, iris_trn))
+head(predict(iris_lda, iris_trn)$class, n = 10)
+head(predict(iris_lda, iris_trn)$posterior, n = 10)
+```
+
+## Getting Predictions and Error Rates
+
+```{r}
+iris_lda_trn_pred = predict(iris_lda, iris_trn)$class
+iris_lda_tst_pred = predict(iris_lda, iris_tst)$class
+```
+
+We store the predictions made on the train and test sets.
+
+```{r}
+calc_class_err = function(actual, predicted) {
+  mean(actual != predicted)
+}
+```
+
+```{r}
+calc_class_err(predicted = iris_lda_trn_pred, actual = iris_trn$Species)
+calc_class_err(predicted = iris_lda_tst_pred, actual = iris_tst$Species)
+```
+
+As expected, LDA performs well on both the train and test data.
+
+```{r}
+table(predicted = iris_lda_tst_pred, actual = iris_tst$Species)
+```
+
+## QDA
+
+Guess what?! There is a `qda` function. Yay!
+
+```{r}
+iris_qda = qda(Species ~ ., data = iris_trn)
+iris_qda
+```
+
+```{r}
+iris_qda_trn_pred = predict(iris_qda, iris_trn)$class
+iris_qda_tst_pred = predict(iris_qda, iris_tst)$class
+```
+
+The `predict()` function operates the same as the `predict()` function for LDA.
+
+```{r}
+calc_class_err(predicted = iris_qda_trn_pred, actual = iris_trn$Species)
+calc_class_err(predicted = iris_qda_tst_pred, actual = iris_tst$Species)
+```
+
+```{r}
+table(predicted = iris_qda_tst_pred, actual = iris_tst$Species)
+```
+
+## Logistic Regression
+
+In lecture, you were told that Logistic Regression does not get used for more than 2 groups all that much. Let's see how it performs anyway.
+
+In this case, the `glm` function cannot be used. Instead a function from the `nnet` packages will be used.
+
+
+
+```{r}
+library(nnet)
+
+iris_log=multinom(Species~., data=iris_trn)
+summary(iris_log)
+```
+
+```{r}
+iris_log_trn_pred = predict(iris_log, iris_trn, "class")
+iris_log_tst_pred = predict(iris_log, iris_tst, "class")
+```
+
+The `predict()` function operates the same as the `predict()` function for LDA.
+
+```{r}
+calc_class_err(predicted = iris_log_trn_pred, actual = iris_trn$Species)
+calc_class_err(predicted = iris_log_tst_pred, actual = iris_tst$Species)
+```
+
+```{r}
+table(predicted = iris_log_tst_pred, actual = iris_tst$Species)
+```
+
+## KNN
+
+```{r}
+library(class)
+
+kmax = 100
+err = double(kmax)
+for(ii in 1:kmax){
+  pk = knn.cv(iris_trn[,-5],iris_trn$Species, k=ii) # does leave one out CV
+  err[ii] = mean(pk != iris_trn$Species)
+}
+ggplot(data.frame(k=1:kmax,error=err), aes(k,error))  +
+  geom_line(color=red)
+
+best.k <- max(which(err == min(err)))
+
+best.k
+```
+
+```{r}
+iris_knn_trn_pred = knn(iris_trn[,-5], iris_trn[,-5], iris_trn$Species, k = best.k)
+iris_knn_tst_pred = knn(iris_trn[,-5], iris_tst[,-5], iris_trn$Species, k = best.k)
+```
+
+```{r}
+calc_class_err(predicted = iris_knn_trn_pred, actual = iris_trn$Species)
+calc_class_err(predicted = iris_knn_tst_pred, actual = iris_tst$Species)
+```
