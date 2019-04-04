@@ -1,9 +1,9 @@
 ---
 title: 'Chapter 8 in ISL: Tree-Based Methods'
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 date: "28 March 2019"
 ---
 
@@ -92,6 +92,23 @@ We assume this model holds over the _whole_ space of our predictors.
 We have gone over a couple non-parametric methods: kernel smoothing and KNN.
 
 Next we will look at Classification and Regression trees.
+
+## Example Data, California Median House Prices
+
+What patterns do you see in median housing prices? 
+
+```{r, fig.height = 8}
+calif <- read.table("http://www.stat.cmu.edu/~cshalizi/350/hw/06/cadata.dat",
+header = TRUE)
+
+head(calif)
+
+price.deciles <- quantile(calif$MedianHouseValue, 0:10/10)
+cut.prices <- cut(calif$MedianHouseValue, price.deciles, include.lowest = TRUE)
+plot(calif$Longitude, calif$Latitude, col = grey(10:2/11)[cut.prices], pch = 20,
+xlab = "Longitude", ylab = "Latitude")
+```
+
   
 ## Trees in General
   
@@ -106,10 +123,6 @@ We create a __binary tree__:
 4. Average the set of $Y$ observations within the set of regions that define a leaf and average them together, (or look at the majority in classification). The average (or majority) is the predicted value of the response.
 
 ```{r demotree, fig.height = 8}
-calif <- read.table("http://www.stat.cmu.edu/~cshalizi/350/hw/06/cadata.dat",
-header = TRUE)
-
-head(calif)
 
 ### Libraries !!!
 library(tree)
